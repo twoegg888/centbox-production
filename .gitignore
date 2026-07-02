@@ -1,0 +1,27 @@
+node_modules/
+dist/
+.netlify/
+.DS_Store
+Thumbs.db
+.env
+.env.local
+.env.*.local
+*.log
+coverage/
+common_F*/
+supabase/.temp/
+
+# Local/legacy handoff documents are not required for production deploys.
+CAFE24_*.md
+DEVELOPMENT_HISTORY.md
+DOCUMENTATION_INDEX.md
+HANDOVER.md
+NETLIFY_PUBLISH_PREP.md
+PROJECT_DOCUMENTATION.md
+PROJECT_STATUS.md
+QUICK_START_CAFE24.md
+SECURITY_PATCH_LOG.md
+responsive-summary.md
+
+# Imported reference project kept locally only.
+센트박스 figma make 프론트/
