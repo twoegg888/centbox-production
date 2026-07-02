@@ -901,27 +901,6 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         </div>
       ) : (
         <>
-          {/* 📊 가중치 요약 */}
-          {(() => {
-            const activeProducts = products.filter(p => p.isActive);
-            const totalWeight = activeProducts.reduce((sum, p) => sum + p.probability, 0);
-            return activeProducts.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h3 className="text-sm font-medium text-blue-900 mb-2">📊 현재 가중치 설정</h3>
-                <div className="space-y-1">
-                  <p className="text-xs text-blue-700">
-                    • 전체 가중치 합계: <strong>{totalWeight}</strong>
-                  </p>
-                  {activeProducts.map((p) => (
-                    <p key={p.id} className="text-xs text-blue-600">
-                      • {p.name}: {p.probability} ({((p.probability / totalWeight) * 100).toFixed(2)}%)
-                    </p>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
           <div className="bg-white shadow overflow-hidden sm:rounded-md">
             <ul className="divide-y divide-gray-200">
             {products.map((product) => (
@@ -1422,4 +1401,3 @@ function LuckyDrawModal({
     </div>
   );
 }
-
