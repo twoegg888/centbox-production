@@ -41,7 +41,8 @@ const CAFE24_REFRESH_TOKEN_EXPIRES_AT = Deno.env.get("CAFE24_REFRESH_TOKEN_EXPIR
 const CAFE24_SHOP_NO = Deno.env.get("CAFE24_SHOP_NO") || "1";
 const CAFE24_RETURN_BASE_URL = Deno.env.get("CAFE24_RETURN_BASE_URL") || "";
 const CAFE24_TOKEN_STORE_KEY = "cafe24:oauth_tokens";
-const KAKAO_REST_API_KEY = Deno.env.get("KAKAO_REST_API_KEY") || "";
+const DEFAULT_KAKAO_REST_API_KEY = "f1f1ee7feb6098a7bc74cd41e7d787cc";
+const KAKAO_REST_API_KEY = Deno.env.get("KAKAO_REST_API_KEY")?.trim() || DEFAULT_KAKAO_REST_API_KEY;
 
 const TICKET_PRICE_MAP = {
   legendary: 49000,
