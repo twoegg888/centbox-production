@@ -117,7 +117,7 @@ export default function TicketDetailTemplate({
     const startTime = Date.now();
     const result = await drawTickets({
       ticketType,
-      productName: productName || ticketName,
+      productName,
       count: ticketCount,
     });
 

@@ -2190,7 +2190,7 @@ app.post("/make-server-53dba95c/user/:kakaoId/tickets/draw", async (c) => {
   try {
     const kakaoId = c.req.param("kakaoId");
     const { ticketType, productName, count } = await c.req.json();
-    const mapping = await findProductMapping(productName || ticketType);
+    const mapping = await findProductMapping(ticketType || productName);
     const normalizedTicketType = mapping?.ticketType;
     const normalizedCount = Number(count);
 
