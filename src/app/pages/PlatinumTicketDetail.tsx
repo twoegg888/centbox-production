@@ -3,5 +3,5 @@ import TicketDetailTemplate from "../components/TicketDetailTemplate";
 const PLATINUM_DETAIL_IMAGE_URL = "https://dbase01.cafe24.com/Centbox/platinum_detail1.png";
 
 export default function PlatinumTicketDetail() {
-  return <TicketDetailTemplate ticketName="플래티넘 박스" mainImage={PLATINUM_DETAIL_IMAGE_URL} ticketType="platinum" />;
+  return <TicketDetailTemplate ticketName="행운의 상자" mainImage={PLATINUM_DETAIL_IMAGE_URL} ticketType="lucky" />;
 }

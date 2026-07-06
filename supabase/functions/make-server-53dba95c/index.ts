@@ -44,6 +44,10 @@ const CAFE24_TOKEN_STORE_KEY = "cafe24:oauth_tokens";
 const KAKAO_REST_API_KEY = Deno.env.get("KAKAO_REST_API_KEY") || "";
 
 const TICKET_PRICE_MAP = {
+  legendary: 49000,
+  mystery: 14900,
+  lucky: 99000,
+  starlight: 9900,
   ruby: 9900,
   jewelry: 19900,
   meat: 39900,
@@ -55,6 +59,20 @@ const TICKET_PRICE_MAP = {
 
 type TicketType = keyof typeof TICKET_PRICE_MAP;
 const TICKET_TYPES = Object.keys(TICKET_PRICE_MAP) as TicketType[];
+
+const CANONICAL_BOX_TICKET_BY_LEGACY: Record<string, TicketType> = {
+  diamond: "legendary",
+  gold: "mystery",
+  platinum: "lucky",
+  ruby: "starlight",
+};
+
+const LEGACY_BOX_TICKET_BY_CANONICAL: Record<string, TicketType> = {
+  legendary: "diamond",
+  mystery: "gold",
+  lucky: "platinum",
+  starlight: "ruby",
+};
 
 function normalizeProductKey(value: unknown): string {
   const rawValue = String(value || "");
@@ -76,6 +94,32 @@ function isTicketType(value: unknown): value is TicketType {
   return TICKET_TYPES.includes(String(value) as TicketType);
 }
 
+function canonicalizeTicketType(value: unknown): TicketType | null {
+  const rawValue = String(value || "");
+  const normalizedValue = normalizeProductKey(rawValue);
+
+  if (CANONICAL_BOX_TICKET_BY_LEGACY[normalizedValue]) {
+    return CANONICAL_BOX_TICKET_BY_LEGACY[normalizedValue];
+  }
+
+  if (isTicketType(normalizedValue)) {
+    return normalizedValue as TicketType;
+  }
+
+  return null;
+}
+
+function getProductStorageTicketType(ticketType: TicketType): TicketType {
+  return LEGACY_BOX_TICKET_BY_CANONICAL[ticketType] || ticketType;
+}
+
+function normalizeProductForResponse(product: any, ticketType: string) {
+  return {
+    ...product,
+    ticketType,
+  };
+}
+
 async function findProductMapping(productNameOrType: unknown): Promise<{
   ticketType: TicketType;
   product?: any;
@@ -83,12 +127,15 @@ async function findProductMapping(productNameOrType: unknown): Promise<{
   const rawValue = String(productNameOrType || "");
   const normalizedValue = normalizeProductKey(rawValue);
 
-  if (isTicketType(rawValue)) {
-    return { ticketType: rawValue };
+  const directTicketType = canonicalizeTicketType(rawValue);
+  if (directTicketType) {
+    return { ticketType: directTicketType };
   }
 
-  for (const ticketType of TICKET_TYPES) {
-    const productsStr = await kv.get(`products:${ticketType}`);
+  const storageTicketTypes = Array.from(new Set(TICKET_TYPES.map(getProductStorageTicketType)));
+  for (const storageTicketType of storageTicketTypes) {
+    const canonicalTicketType = canonicalizeTicketType(storageTicketType) || storageTicketType;
+    const productsStr = await kv.get(`products:${storageTicketType}`);
     const products = productsStr ? JSON.parse(productsStr) : [];
     const product = products.find((item: any) => {
       return (
@@ -99,7 +146,7 @@ async function findProductMapping(productNameOrType: unknown): Promise<{
     });
 
     if (product) {
-      return { ticketType, product };
+      return { ticketType: canonicalTicketType, product: normalizeProductForResponse(product, canonicalTicketType) };
     }
   }
 
@@ -894,11 +941,11 @@ async function validateKakaoToken(accessToken: string): Promise<{ kakaoId: strin
         Authorization: `Bearer ${accessToken}`,
       },
     });
-    
+
     if (!response.ok) {
       return { kakaoId: '', valid: false };
     }
-    
+
     const data = await response.json();
     return { kakaoId: String(data.id), valid: true };
   } catch (error) {
@@ -1213,7 +1260,7 @@ app.post("/make-server-53dba95c/admin/cafe24/recover-order", async (c) => {
 app.post("/make-server-53dba95c/auth/kakao/token", async (c) => {
   try {
     const { code, redirectUri } = await c.req.json();
-    
+
     if (!code || !redirectUri) {
       return c.json({ error: "Missing code or redirectUri" }, 400);
     }
@@ -1281,7 +1328,7 @@ app.post("/make-server-53dba95c/auth/kakao/token", async (c) => {
     const ADMIN_KAKAO_IDS = [
       "3867968748", // ê´ë¦¬ì ì¹´ì¹´??ID (?¬ê¸°???¤ì  ê´ë¦¬ì ì¹´ì¹´??ID ?ë ¥)
     ];
-    
+
     const isAdmin = ADMIN_KAKAO_IDS.includes(kakaoId);
     let supabaseJWT: string | null = null;
     
@@ -2155,6 +2202,8 @@ app.post("/make-server-53dba95c/user/:kakaoId/tickets/draw", async (c) => {
       return c.json({ error: "Invalid draw count" }, 400);
     }
 
+    const storageTicketType = getProductStorageTicketType(normalizedTicketType);
+
     await createTransactionLog({
       txId,
       kakaoId,
@@ -2173,7 +2222,7 @@ app.post("/make-server-53dba95c/user/:kakaoId/tickets/draw", async (c) => {
       return c.json({ error: "User not found" }, 404);
     }
 
-    const productsStr = await kv.get(`products:${normalizedTicketType}`);
+    const productsStr = await kv.get(`products:${storageTicketType}`);
     if (!productsStr) {
       await updateTransactionLog(txId, {
         status: 'failed',
@@ -2244,7 +2293,7 @@ app.post("/make-server-53dba95c/user/:kakaoId/tickets/draw", async (c) => {
       relatedId: awardedTickets[0]?.id,
     });
 
-    await kv.set(`products:${normalizedTicketType}`, JSON.stringify(products));
+    await kv.set(`products:${storageTicketType}`, JSON.stringify(products));
     await kv.set(`userdata:${kakaoId}`, JSON.stringify(userData));
 
     await updateTransactionLog(txId, {
@@ -2279,7 +2328,7 @@ app.post("/make-server-53dba95c/user/:kakaoId/tickets/draw", async (c) => {
 // ?¥ ?µí© API: ?¬ì¸??ì°¨ê° + ?°ì¼ ì§ê¸?(?ì???¸ë??)
 app.post("/make-server-53dba95c/user/:kakaoId/tickets/purchase-atomic", async (c) => {
   const txId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   try {
     const kakaoId = c.req.param("kakaoId");
     const { ticketData, points } = await c.req.json();
@@ -2575,7 +2624,7 @@ app.get("/make-server-53dba95c/exchange/popular-products", async (c) => {
       if (!ticket || ticket.status !== "sold") continue;
 
       const productName = String(ticket.productName || "");
-      const ticketType = String(ticket.ticketType || "");
+      const ticketType = canonicalizeTicketType(ticket.ticketType) || String(ticket.ticketType || "");
       const key = `${ticketType}:${productName}`;
       const existing = productMap.get(key);
 
@@ -2904,13 +2953,13 @@ app.get("/make-server-53dba95c/products/detail/:productNameOrType", async (c) =>
     }
 
     if (!mapping.product) {
-      const productsStr = await kv.get("products:" + mapping.ticketType);
+      const productsStr = await kv.get("products:" + getProductStorageTicketType(mapping.ticketType));
       const products = productsStr ? JSON.parse(productsStr) : [];
       const activeProducts = products.filter((p: any) => p.isActive !== false);
       return c.json({
         success: true,
         ticketType: mapping.ticketType,
-        product: activeProducts[0] || null,
+        product: activeProducts[0] ? normalizeProductForResponse(activeProducts[0], mapping.ticketType) : null,
       });
     }
 
@@ -2927,8 +2976,13 @@ app.get("/make-server-53dba95c/products/detail/:productNameOrType", async (c) =>
 
 app.get("/make-server-53dba95c/products/:ticketType", async (c) => {
   try {
-    const ticketType = c.req.param("ticketType");
-    const productsStr = await kv.get(`products:${ticketType}`);
+    const ticketType = canonicalizeTicketType(c.req.param("ticketType"));
+    if (!ticketType) {
+      return c.json({ error: "Unsupported ticket type" }, 400);
+    }
+
+    const storageTicketType = getProductStorageTicketType(ticketType);
+    const productsStr = await kv.get(`products:${storageTicketType}`);
     
     if (!productsStr) {
       return c.json({ success: true, products: [] });
@@ -2936,7 +2990,9 @@ app.get("/make-server-53dba95c/products/:ticketType", async (c) => {
     
     const products = JSON.parse(productsStr);
     // ?ì±?ë ?íë§?ë°í
-    const activeProducts = products.filter((p: any) => p.isActive !== false);
+    const activeProducts = products
+      .filter((p: any) => p.isActive !== false)
+      .map((product: any) => normalizeProductForResponse(product, ticketType));
     
     return c.json({ success: true, products: activeProducts });
   } catch (error) {
@@ -2954,12 +3010,14 @@ app.get("/make-server-53dba95c/admin/products/all", async (c) => {
   }
 
   try {
-    const ticketTypes = ['diamond', 'gold', 'platinum', 'ruby', 'jewelry', 'beauty', 'meat'];
+    const ticketTypes = ['legendary', 'mystery', 'lucky', 'starlight', 'jewelry', 'beauty', 'meat'] as TicketType[];
     const allProducts: any = {};
     
     for (const ticketType of ticketTypes) {
-      const productsStr = await kv.get(`products:${ticketType}`);
-      allProducts[ticketType] = productsStr ? JSON.parse(productsStr) : [];
+      const productsStr = await kv.get(`products:${getProductStorageTicketType(ticketType)}`);
+      allProducts[ticketType] = productsStr
+        ? JSON.parse(productsStr).map((product: any) => normalizeProductForResponse(product, ticketType))
+        : [];
     }
     
     return c.json({ success: true, products: allProducts });
@@ -2972,9 +3030,12 @@ app.get("/make-server-53dba95c/admin/products/all", async (c) => {
 // ?¹ì  ?°ì¼ ??ì ?í ëª©ë¡ ì¡°í (ê´ë¦¬ì??- ë¹í???¬í¨)
 app.get("/make-server-53dba95c/admin/products/:ticketType", async (c) => {
   console.log("?â?â /admin/products/:ticketType REQUEST ?â?â");
-  const ticketType = c.req.param("ticketType");
+  const ticketType = canonicalizeTicketType(c.req.param("ticketType"));
+  if (!ticketType) {
+    return c.json({ error: "Unsupported ticket type" }, 400);
+  }
   console.log("?¦ Ticket Type:", ticketType);
-  
+
   const adminSecret = getAdminSecretFromHeaders(c);
   console.log("? Extracted secret:", adminSecret ? `${adminSecret.substring(0, 3)}***` : "NOT FOUND");
   
@@ -2988,13 +3049,17 @@ app.get("/make-server-53dba95c/admin/products/:ticketType", async (c) => {
   console.log("??[/admin/products/:ticketType] Authentication successful!");
 
   try {
-    const productsStr = await kv.get(`products:${ticketType}`);
-    
+    const storageTicketType = getProductStorageTicketType(ticketType);
+    const productsStr = await kv.get(`products:${storageTicketType}`);
+
     if (!productsStr) {
       return c.json({ success: true, products: [] });
     }
-    
-    return c.json({ success: true, products: JSON.parse(productsStr) });
+
+    return c.json({
+      success: true,
+      products: JSON.parse(productsStr).map((product: any) => normalizeProductForResponse(product, ticketType)),
+    });
   } catch (error) {
     console.error("Get admin products error:", error);
     return c.json({ error: "Failed to get products", details: String(error) }, 500);
@@ -3017,10 +3082,14 @@ app.post("/make-server-53dba95c/admin/products/:ticketType", async (c) => {
   console.log("??[POST /admin/products] Authentication successful!");
 
   try {
-    const ticketType = c.req.param("ticketType");
+    const ticketType = canonicalizeTicketType(c.req.param("ticketType"));
+    if (!ticketType) {
+      return c.json({ error: "Unsupported ticket type" }, 400);
+    }
+    const storageTicketType = getProductStorageTicketType(ticketType);
     const { name, brand, imageUrl, points, probability, stock } = await c.req.json();
-    
-    const productsStr = await kv.get(`products:${ticketType}`);
+
+    const productsStr = await kv.get(`products:${storageTicketType}`);
     const products = productsStr ? JSON.parse(productsStr) : [];
     
     const newProduct = {
@@ -3044,7 +3113,7 @@ app.post("/make-server-53dba95c/admin/products/:ticketType", async (c) => {
     // ?? A=30, B=20, C=50 ??ì´í© 100 ??30%, 20%, 50%
     // ?? A=3, B=2, C=5 ??ì´í© 10 ??30%, 20%, 50%
     
-    await kv.set(`products:${ticketType}`, JSON.stringify(products));
+    await kv.set(`products:${storageTicketType}`, JSON.stringify(products));
     
     console.log(`Product added to ${ticketType}:`, newProduct.id);
     
@@ -3071,13 +3140,17 @@ app.put("/make-server-53dba95c/admin/products/:ticketType/:productId", async (c)
   console.log("??[PUT /admin/products] Authentication successful!");
 
   try {
-    const ticketType = c.req.param("ticketType");
+    const ticketType = canonicalizeTicketType(c.req.param("ticketType"));
+    if (!ticketType) {
+      return c.json({ error: "Unsupported ticket type" }, 400);
+    }
+    const storageTicketType = getProductStorageTicketType(ticketType);
     const productId = c.req.param("productId");
     const updates = await c.req.json();
     
     console.log(`? [PUT /admin/products] ticketType: ${ticketType}, productId: ${productId}`);
     
-    const productsStr = await kv.get(`products:${ticketType}`);
+    const productsStr = await kv.get(`products:${storageTicketType}`);
     if (!productsStr) {
       console.error(`??[PUT /admin/products] No products found for ticketType: ${ticketType}`);
       return c.json({ error: "Products not found" }, 404);
@@ -3105,13 +3178,14 @@ app.put("/make-server-53dba95c/admin/products/:ticketType/:productId", async (c)
     // ??ê°ì¤ì¹ ?ì¤?? ?ë¥  ?©ê³ê° 100%???ì ?ì!
     // ?ë¡ ?¸ì?ì???ì²´ ê°ì¤ì¹ ?©ê³ ?ë¹?ë¹ì¨ë¡??ë ê³ì°?©ë??
     
-    await kv.set(`products:${ticketType}`, JSON.stringify(products));
+    await kv.set(`products:${storageTicketType}`, JSON.stringify(products));
 
     const homeProductsStr = await kv.get("home:featured-products");
     if (homeProductsStr) {
       const homeProducts = JSON.parse(homeProductsStr);
       const updatedHomeProducts = homeProducts.map((homeProduct: any) => {
-        if (homeProduct.id !== productId || homeProduct.ticketType !== ticketType) return homeProduct;
+        const homeProductTicketType = canonicalizeTicketType(homeProduct.ticketType);
+        if (homeProduct.id !== productId || homeProductTicketType !== ticketType) return homeProduct;
 
         return {
           ...homeProduct,
@@ -3128,7 +3202,7 @@ app.put("/make-server-53dba95c/admin/products/:ticketType/:productId", async (c)
     
     console.log(`Product updated: ${productId}`);
     
-    return c.json({ success: true, product: products[productIndex] });
+    return c.json({ success: true, product: normalizeProductForResponse(products[productIndex], ticketType) });
   } catch (error) {
     console.error("Update product error:", error);
     return c.json({ error: "Failed to update product", details: String(error) }, 500);
@@ -3151,10 +3225,14 @@ app.delete("/make-server-53dba95c/admin/products/:ticketType/:productId", async 
   console.log("??[DELETE /admin/products] Authentication successful!");
 
   try {
-    const ticketType = c.req.param("ticketType");
+    const ticketType = canonicalizeTicketType(c.req.param("ticketType"));
+    if (!ticketType) {
+      return c.json({ error: "Unsupported ticket type" }, 400);
+    }
+    const storageTicketType = getProductStorageTicketType(ticketType);
     const productId = c.req.param("productId");
     
-    const productsStr = await kv.get(`products:${ticketType}`);
+    const productsStr = await kv.get(`products:${storageTicketType}`);
     if (!productsStr) {
       return c.json({ error: "Products not found" }, 404);
     }
@@ -3166,7 +3244,7 @@ app.delete("/make-server-53dba95c/admin/products/:ticketType/:productId", async 
       return c.json({ error: "Product not found" }, 404);
     }
     
-    await kv.set(`products:${ticketType}`, JSON.stringify(filteredProducts));
+    await kv.set(`products:${storageTicketType}`, JSON.stringify(filteredProducts));
     
     console.log(`Product deleted: ${productId}`);
     
@@ -3680,7 +3758,12 @@ app.get("/make-server-53dba95c/home-products", async (c) => {
       return c.json({ success: true, products: [] });
     }
     
-    return c.json({ success: true, products: JSON.parse(homeProductsStr) });
+    const products = JSON.parse(homeProductsStr).map((product: any) => {
+      const ticketType = canonicalizeTicketType(product.ticketType) || product.ticketType;
+      return normalizeProductForResponse(product, ticketType);
+    });
+
+    return c.json({ success: true, products });
   } catch (error) {
     console.error("Get home products error:", error);
     return c.json({ error: "Failed to get home products", details: String(error) }, 500);
@@ -3712,7 +3795,12 @@ app.get("/make-server-53dba95c/admin/home-products", async (c) => {
       return c.json({ success: true, products: [] });
     }
     
-    return c.json({ success: true, products: JSON.parse(homeProductsStr) });
+    const products = JSON.parse(homeProductsStr).map((product: any) => {
+      const ticketType = canonicalizeTicketType(product.ticketType) || product.ticketType;
+      return normalizeProductForResponse(product, ticketType);
+    });
+
+    return c.json({ success: true, products });
   } catch (error) {
     console.error("Get home products error:", error);
     return c.json({ error: "Failed to get home products", details: String(error) }, 500);
@@ -3735,10 +3823,17 @@ app.post("/make-server-53dba95c/admin/home-products", async (c) => {
   console.log("??[POST /admin/home-products] Authentication successful!");
 
   try {
-    const { ticketType, productId } = await c.req.json();
+    const body = await c.req.json();
+    const requestedTicketType = canonicalizeTicketType(body.ticketType);
+    const { productId } = body;
+    if (!requestedTicketType) {
+      return c.json({ error: "Unsupported ticket type" }, 400);
+    }
+    const ticketType = requestedTicketType;
+    const storageTicketType = getProductStorageTicketType(ticketType);
     
     // ?´ë¹ ?°ì¼???í ì¡°í
-    const productsStr = await kv.get(`products:${ticketType}`);
+    const productsStr = await kv.get(`products:${storageTicketType}`);
     if (!productsStr) {
       return c.json({ error: "Ticket type not found" }, 404);
     }
@@ -3754,7 +3849,7 @@ app.post("/make-server-53dba95c/admin/home-products", async (c) => {
     const homeProducts = homeProductsStr ? JSON.parse(homeProductsStr) : [];
     
     // ì¤ë³µ ì²´í¬
-    const exists = homeProducts.some((p: any) => p.id === productId && p.ticketType === ticketType);
+    const exists = homeProducts.some((p: any) => p.id === productId && canonicalizeTicketType(p.ticketType) === ticketType);
     if (exists) {
       return c.json({ error: "Product already added" }, 400);
     }
@@ -3799,7 +3894,10 @@ app.delete("/make-server-53dba95c/admin/home-products/:ticketType/:productId", a
   console.log("??[DELETE /admin/home-products] Authentication successful!");
 
   try {
-    const ticketType = c.req.param("ticketType");
+    const ticketType = canonicalizeTicketType(c.req.param("ticketType"));
+    if (!ticketType) {
+      return c.json({ error: "Unsupported ticket type" }, 400);
+    }
     const productId = c.req.param("productId");
     
     const homeProductsStr = await kv.get("home:featured-products");
@@ -3809,7 +3907,7 @@ app.delete("/make-server-53dba95c/admin/home-products/:ticketType/:productId", a
     
     const homeProducts = JSON.parse(homeProductsStr);
     const filteredProducts = homeProducts.filter(
-      (p: any) => !(p.id === productId && p.ticketType === ticketType)
+      (p: any) => !(p.id === productId && canonicalizeTicketType(p.ticketType) === ticketType)
     );
     
     if (filteredProducts.length === homeProducts.length) {

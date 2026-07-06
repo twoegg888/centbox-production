@@ -5,15 +5,16 @@ import ShippingTab from "../components/ShippingTab";
 import HomeProductsTab from "../components/HomeProductsTab";
 import { useApp } from "../context/AppContext";
 import * as XLSX from 'xlsx';
+import { canonicalizeBoxTicketType } from "../utils/ticketTypes";
 
 type Tab = 'dashboard' | 'users' | 'products' | 'luckydraws' | 'shipping' | 'homeproducts';
-type TicketType = 'diamond' | 'gold' | 'platinum' | 'ruby';
+type TicketType = 'legendary' | 'mystery' | 'lucky' | 'starlight';
 
 const TICKET_TYPE_NAMES: Record<TicketType, string> = {
-  diamond: '다이아 박스',
-  gold: '골드 박스',
-  platinum: '플래티넘 박스',
-  ruby: '루비 박스',
+  legendary: '전설의 상자',
+  mystery: '미스터리 상자',
+  lucky: '행운의 상자',
+  starlight: '별빛 상자',
 };
 
 // 🔐 관리자 API 호출 헤더 (모든 컴포넌트에서 사용 가능)
@@ -546,7 +547,7 @@ function UsersTab({ isAuthenticated }: { isAuthenticated: boolean }) {
 // 상품 관리 탭
 // ============================================
 function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
-  const [selectedTicketType, setSelectedTicketType] = useState<TicketType>('diamond');
+  const [selectedTicketType, setSelectedTicketType] = useState<TicketType>('legendary');
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -583,7 +584,10 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         return;
       }
       
-      setProducts(data.products || []);
+      setProducts((data.products || []).map((product: any) => ({
+        ...product,
+        ticketType: canonicalizeBoxTicketType(product.ticketType),
+      })));
     } catch (error) {
       console.error('Error fetching products:', error);
       alert(`❌ 에러: ${error}`);
@@ -623,7 +627,7 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
   const handleDownloadTemplate = () => {
     const templateData = [
       {
-        '박스타입': 'diamond',
+        '박스타입': 'legendary',
         '상품명': 'iPhone 15 Pro Max',
         '브랜드': 'Apple',
         '포인트': 50000,
@@ -632,7 +636,7 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         '이미지URL': 'https://images.unsplash.com/photo-1632633728024-e1fd4bef561a',
       },
       {
-        '박스타입': 'gold',
+        '박스타입': 'mystery',
         '상품명': 'AirPods Pro',
         '브랜드': 'Apple',
         '포인트': 15000,
@@ -641,7 +645,7 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         '이미지URL': 'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7',
       },
       {
-        '박스타입': 'ruby',
+        '박스타입': 'starlight',
         '상품명': 'CU 모바일 상품권 3만원',
         '브랜드': 'CU',
         '포인트': 10000,
@@ -715,8 +719,8 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         }
 
         // 티켓 타입 검증
-        const ticketType = String(row['박스타입']).toLowerCase();
-        const validTicketTypes = ['diamond', 'gold', 'platinum', 'ruby'];
+        const ticketType = canonicalizeBoxTicketType(String(row['박스타입']).toLowerCase());
+        const validTicketTypes = ['legendary', 'mystery', 'lucky', 'starlight'];
         if (!validTicketTypes.includes(ticketType)) {
           errors.push(`${rowNum}행: 잘못된 박스타입 (${row['박스타입']}). 가능한 값: ${validTicketTypes.join(', ')}`);
           return;
@@ -861,7 +865,7 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
           <li>검증 후 일괄 등록됩니다.</li>
         </ol>
         <p className="text-xs text-blue-600 mt-2">
-          ⚠️ 박스타입: diamond, gold, platinum, ruby 중 하나여야 합니다.
+          ⚠️ 박스타입: legendary, mystery, lucky, starlight 중 하나여야 합니다. 기존 diamond, gold, platinum, ruby 값도 자동 변환됩니다.
         </p>
       </div>
 

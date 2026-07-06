@@ -3,5 +3,5 @@ import TicketDetailTemplate from "../components/TicketDetailTemplate";
 const DIAMOND_DETAIL_IMAGE_URL = "https://dbase01.cafe24.com/Centbox/diamond_detail1.png";
 
 export default function DiamondTicketDetail() {
-  return <TicketDetailTemplate ticketName="다이아 박스" mainImage={DIAMOND_DETAIL_IMAGE_URL} ticketType="diamond" />;
+  return <TicketDetailTemplate ticketName="전설의 상자" mainImage={DIAMOND_DETAIL_IMAGE_URL} ticketType="legendary" />;
 }

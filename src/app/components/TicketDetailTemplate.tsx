@@ -5,6 +5,7 @@ import { TICKET_PRICES } from "../constants/ticketPrices";
 import { getApiBase, publicAnonKey } from "../../../utils/supabase/info";
 import { useApp } from "../context/AppContext";
 import { DISABLE_LOGIN_GUARDS } from "../utils/authBypass";
+import { toLegacyBoxTicketType } from "../utils/ticketTypes";
 import svgPaths from "../../imports/svg-mj58s0kgwi";
 import imgRectangle38 from "figma:asset/5997db99783f6b6d17b11391a0bd72794b3ffc4c.png";
 import imgLuckTemperature from "figma:asset/8194a183fe83df0233723d20d08193625bcaef4e.png";
@@ -58,7 +59,8 @@ export default function TicketDetailTemplate({
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch(`${API_BASE}/products/${ticketType}`, {
+        const apiTicketType = toLegacyBoxTicketType(ticketType);
+        const response = await fetch(`${API_BASE}/products/${apiTicketType}`, {
           headers: {
             Authorization: `Bearer ${publicAnonKey}`,
           },

@@ -6,6 +6,12 @@ import imgPlatinum from "figma:asset/915fa6551696b9d851e927eea54af0715e8833ce.pn
 import imgBeauty from "figma:asset/203c864af61feab09e3ab1afba0475fee98d811d.png";
 import imgMeat from "figma:asset/110157f20f9d259cf10ef370b6aa3b30ec937e1f.png";
 import imgJewelry from "figma:asset/a9dbf0d55cefb05c4def32b65330fee4df00d4e6.png";
+import {
+  canonicalizeBoxTicketType,
+  getBoxTicketDisplayName,
+  isCanonicalBoxTicketType,
+  isLegacyBoxTicketType,
+} from "./ticketTypes";
 
 export type TicketDetailMeta = {
   ticketName: string;
@@ -14,10 +20,14 @@ export type TicketDetailMeta = {
 };
 
 export const TICKET_DETAIL_META: Record<TicketType, TicketDetailMeta> = {
-  ruby: { ticketName: "루비 박스", mainImage: imgRuby, ticketType: "ruby" },
-  gold: { ticketName: "골드 박스", mainImage: imgGold, ticketType: "gold" },
-  diamond: { ticketName: "다이아 박스", mainImage: imgDiamond, ticketType: "diamond" },
-  platinum: { ticketName: "플래티넘 박스", mainImage: imgPlatinum, ticketType: "platinum" },
+  legendary: { ticketName: "전설의 상자", mainImage: imgDiamond, ticketType: "legendary" },
+  mystery: { ticketName: "미스터리 상자", mainImage: imgGold, ticketType: "mystery" },
+  lucky: { ticketName: "행운의 상자", mainImage: imgPlatinum, ticketType: "lucky" },
+  starlight: { ticketName: "별빛 상자", mainImage: imgRuby, ticketType: "starlight" },
+  ruby: { ticketName: "별빛 상자", mainImage: imgRuby, ticketType: "starlight" },
+  gold: { ticketName: "미스터리 상자", mainImage: imgGold, ticketType: "mystery" },
+  diamond: { ticketName: "전설의 상자", mainImage: imgDiamond, ticketType: "legendary" },
+  platinum: { ticketName: "행운의 상자", mainImage: imgPlatinum, ticketType: "lucky" },
   beauty: { ticketName: "뷰티 티켓", mainImage: imgBeauty, ticketType: "beauty" },
   meat: { ticketName: "미트 티켓", mainImage: imgMeat, ticketType: "meat" },
   jewelry: { ticketName: "주얼리 티켓", mainImage: imgJewelry, ticketType: "jewelry" },
@@ -33,6 +43,10 @@ function normalizeProductName(value: string) {
 export function resolveTicketTypeFromProductName(productName: string): TicketType | null {
   const normalizedName = normalizeProductName(productName);
 
+  if (isCanonicalBoxTicketType(normalizedName) || isLegacyBoxTicketType(normalizedName)) {
+    return canonicalizeBoxTicketType(normalizedName) as TicketType;
+  }
+
   if (normalizedName in TICKET_DETAIL_META) {
     return normalizedName as TicketType;
   }
@@ -46,6 +60,20 @@ export function resolveTicketDetailMeta(productNameOrType: string): TicketDetail
 }
 
 export function buildTicketDetailPath(productName: string, fallbackTicketType?: string) {
-  const value = productName.trim() || fallbackTicketType || "";
+  const fallbackValue = fallbackTicketType ? String(canonicalizeBoxTicketType(fallbackTicketType)) : "";
+  const value = productName.trim() || fallbackValue;
   return value ? `/ticket/${encodeURIComponent(value)}` : "/";
+}
+
+export function getTicketDisplayName(ticketType: string) {
+  if (isCanonicalBoxTicketType(ticketType) || isLegacyBoxTicketType(ticketType)) {
+    return getBoxTicketDisplayName(ticketType);
+  }
+
+  return TICKET_DETAIL_META[ticketType as TicketType]?.ticketName || ticketType;
+}
+
+export function getTicketFallbackImage(ticketType: string) {
+  const canonicalType = canonicalizeBoxTicketType(ticketType) as TicketType;
+  return TICKET_DETAIL_META[canonicalType]?.mainImage || TICKET_DETAIL_META[ticketType as TicketType]?.mainImage || "";
 }

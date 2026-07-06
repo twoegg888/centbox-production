@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
+import { canonicalizeBoxTicketType } from "../utils/ticketTypes";
 
-type TicketType = 'diamond' | 'gold' | 'platinum' | 'ruby';
+type TicketType = 'legendary' | 'mystery' | 'lucky' | 'starlight';
 
 const TICKET_TYPE_NAMES: Record<TicketType, string> = {
-  diamond: '다이아 박스',
-  gold: '골드 박스',
-  platinum: '플래티넘 박스',
-  ruby: '루비 박스',
+  legendary: '전설의 상자',
+  mystery: '미스터리 상자',
+  lucky: '행운의 상자',
+  starlight: '별빛 상자',
 };
 
 interface Product {
@@ -19,9 +20,16 @@ interface Product {
   ticketType: string;
 }
 
+function normalizeProduct(product: Product): Product {
+  return {
+    ...product,
+    ticketType: canonicalizeBoxTicketType(product.ticketType),
+  };
+}
+
 export default function HomeProductsTab({ isAuthenticated }: { isAuthenticated?: boolean }) {
   const [homeProducts, setHomeProducts] = useState<Product[]>([]);
-  const [selectedTicketType, setSelectedTicketType] = useState<TicketType>('diamond');
+  const [selectedTicketType, setSelectedTicketType] = useState<TicketType>('legendary');
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -55,7 +63,7 @@ export default function HomeProductsTab({ isAuthenticated }: { isAuthenticated?:
 
       if (response.ok) {
         const data = await response.json();
-        setHomeProducts(data.products || []);
+        setHomeProducts((data.products || []).map(normalizeProduct));
       } else {
         console.error('Failed to load home products:', await response.text());
       }
@@ -77,7 +85,7 @@ export default function HomeProductsTab({ isAuthenticated }: { isAuthenticated?:
 
       if (response.ok) {
         const data = await response.json();
-        setAvailableProducts(data.products || []);
+        setAvailableProducts((data.products || []).map(normalizeProduct));
       }
     } catch (error) {
       console.error('Error loading ticket products:', error);
@@ -204,7 +212,7 @@ export default function HomeProductsTab({ isAuthenticated }: { isAuthenticated?:
                   />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-blue-600 font-semibold mb-1">
-                      {TICKET_TYPE_NAMES[product.ticketType as TicketType]}
+                      {TICKET_TYPE_NAMES[product.ticketType as TicketType] || product.ticketType}
                     </div>
                     <div className="font-semibold text-sm truncate">{product.name}</div>
                     <div className="text-xs text-gray-600">{product.brand}</div>

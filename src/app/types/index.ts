@@ -1,8 +1,23 @@
 // 티켓 타입
-export type TicketType = 'jewelry' | 'meat' | 'beauty' | 'platinum' | 'diamond' | 'gold' | 'ruby';
+export type TicketType =
+  | 'jewelry'
+  | 'meat'
+  | 'beauty'
+  | 'legendary'
+  | 'mystery'
+  | 'lucky'
+  | 'starlight'
+  | 'platinum'
+  | 'diamond'
+  | 'gold'
+  | 'ruby';
 
 // 티켓 등급 정보
 export const TICKET_GRADES = {
+  legendary: { name: '전설', color: '#B9F2FF', points: 1000, order: 1 },
+  mystery: { name: '미스터리', color: '#FFD700', points: 500, order: 2 },
+  lucky: { name: '행운', color: '#E5E4E2', points: 3000, order: 3 },
+  starlight: { name: '별빛', color: '#FF0000', points: 100, order: 4 },
   ruby: { name: '루비', color: '#FF0000', points: 100, order: 1 },
   gold: { name: '골드', color: '#FFD700', points: 500, order: 2 },
   diamond: { name: '다이아', color: '#B9F2FF', points: 1000, order: 3 },

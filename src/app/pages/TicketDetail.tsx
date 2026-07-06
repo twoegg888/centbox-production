@@ -6,6 +6,7 @@ import { DISABLE_LOGIN_GUARDS } from "../utils/authBypass";
 import { getApiBase, publicAnonKey } from "../../../utils/supabase/info";
 import { TicketType } from "../types";
 import { resolveTicketDetailMeta, TicketDetailMeta } from "../utils/ticketDetailMeta";
+import { canonicalizeBoxTicketType } from "../utils/ticketTypes";
 
 type ProductDetailResponse = {
   success: boolean;
@@ -51,7 +52,7 @@ export default function TicketDetail() {
             setDetailMeta({
               ticketName: data.product.name,
               mainImage: data.product.imageUrl,
-              ticketType: data.ticketType,
+              ticketType: canonicalizeBoxTicketType(data.ticketType) as TicketType,
             });
             return;
           }
