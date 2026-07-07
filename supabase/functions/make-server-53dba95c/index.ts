@@ -840,6 +840,74 @@ async function validateAdminAuth(adminSecret: string | null): Promise<boolean> {
   return verifyAdminSessionToken(adminSecret);
 }
 
+function isValidHttpUrl(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim()) return false;
+
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function validateAdminProductPayload(payload: any): any {
+  const name = typeof payload?.name === "string" ? payload.name.trim() : "";
+  const brand = typeof payload?.brand === "string" ? payload.brand.trim() : "";
+  const imageUrl = typeof payload?.imageUrl === "string" ? payload.imageUrl.trim() : "";
+  const points = Number(payload?.points);
+  const probability = Number(payload?.probability ?? 5);
+  const stock = Number(payload?.stock ?? 999);
+
+  if (!name) return { error: "Missing product name" };
+  if (!brand) return { error: "Missing product brand" };
+  if (!isValidHttpUrl(imageUrl)) return { error: "Invalid image URL" };
+  if (!Number.isFinite(points) || points <= 0) return { error: "Points must be greater than 0" };
+  if (!Number.isFinite(probability) || probability < 0) return { error: "Probability must be 0 or greater" };
+  if (!Number.isFinite(stock) || stock < 0) return { error: "Stock must be 0 or greater" };
+
+  return {
+    value: {
+      name,
+      brand,
+      imageUrl,
+      points,
+      probability,
+      stock,
+    },
+  };
+}
+
+function validateLuckyDrawPayload(payload: any): any {
+  const name = typeof payload?.name === "string" ? payload.name.trim() : "";
+  const brand = typeof payload?.brand === "string" ? payload.brand.trim() : "";
+  const imageUrl = typeof payload?.imageUrl === "string" ? payload.imageUrl.trim() : "";
+  const entryPoints = Number(payload?.entryPoints);
+  const maxParticipants = Number(payload?.maxParticipants ?? 1000);
+  const endDate = typeof payload?.endDate === "string" ? payload.endDate.trim() : "";
+  const status = typeof payload?.status === "string" ? payload.status : "active";
+  const allowedStatuses = ["active", "ended", "completed"];
+
+  if (!name) return { error: "Missing lucky draw name" };
+  if (!brand) return { error: "Missing lucky draw brand" };
+  if (!isValidHttpUrl(imageUrl)) return { error: "Invalid image URL" };
+  if (!Number.isFinite(entryPoints) || entryPoints <= 0) return { error: "Entry points must be greater than 0" };
+  if (!Number.isFinite(maxParticipants) || maxParticipants <= 0) return { error: "Max participants must be greater than 0" };
+  if (!allowedStatuses.includes(status)) return { error: "Invalid lucky draw status" };
+
+  return {
+    value: {
+      name,
+      brand,
+      imageUrl,
+      entryPoints,
+      endDate,
+      maxParticipants,
+      status,
+    },
+  };
+}
+
 // ?¥ ?¸ë?? ë¡ê·¸ ?ì¤??(ë¬´ê²°??ë³´ì¥)
 interface TransactionLog {
   txId: string;
@@ -2786,8 +2854,28 @@ app.post("/make-server-53dba95c/lucky-draw/enter", async (c) => {
     }
     
     const userData = JSON.parse(userDataStr);
+
+    const luckyDrawsStr = await kv.get("lucky-draws");
+    const luckyDraws = luckyDrawsStr ? JSON.parse(luckyDrawsStr) : [];
+    const luckyDraw = luckyDraws.find((draw: any) => draw.id === productId);
+
+    if (!luckyDraw) {
+      return c.json({ error: "Lucky draw not found", success: false }, 404);
+    }
+
+    if (luckyDraw.status && luckyDraw.status !== "active") {
+      return c.json({ error: "Lucky draw is not active", success: false }, 400);
+    }
+
+    if (luckyDraw.endDate) {
+      const endTime = new Date(`${luckyDraw.endDate}T23:59:59`).getTime();
+      if (Number.isFinite(endTime) && endTime < Date.now()) {
+        return c.json({ error: "Lucky draw has ended", success: false }, 400);
+      }
+    }
     
     // ?¥ ?´ì¤ ê²ì¦? ?¬ì©???°ì´??+ ?ì­ ì°¸ì¬ ëª©ë¡ ?ì¸
+    userData.luckyDrawEntries = userData.luckyDrawEntries || [];
     const alreadyEntered = userData.luckyDrawEntries.some(
       (e: any) => e.productId === productId && e.status === 'pending'
     );
@@ -2811,21 +2899,28 @@ app.post("/make-server-53dba95c/lucky-draw/enter", async (c) => {
       console.warn(`? ï¸ ?°ì´??ë¶ì¼ì¹?ê°ì?: ${kakaoId}ê° ?´ë? ?ì­ ëª©ë¡???ì`);
       return c.json({ error: "?´ë? ì°¸ì¬????¤?ë¡?°ì?ë¤.", success: false }, 400);
     }
+
+    if (globalEntries.length >= Number(luckyDraw.maxParticipants || 1000)) {
+      return c.json({ error: "Lucky draw is full", success: false }, 400);
+    }
+
+    const finalEntryPoints = Number(luckyDraw.entryPoints || entryPoints);
+    const finalProductName = luckyDraw.name || productName;
     
     // ?¬ì¸???ì¸
-    if (userData.points < entryPoints) {
+    if (userData.points < finalEntryPoints) {
       return c.json({ error: "Insufficient points", success: false }, 400);
     }
     
     // ?¬ì¸??ì°¨ê°
-    userData.points -= entryPoints;
+    userData.points -= finalEntryPoints;
     
     // ì°¸ì¬ ?´ì­ ì¶ê?
     const entry = {
       id: `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       productId,
-      productName,
-      entryPoints,
+      productName: finalProductName,
+      entryPoints: finalEntryPoints,
       enteredAt: new Date().toISOString(),
       status: 'pending',
       userId: userData.userId,
@@ -2836,8 +2931,8 @@ app.post("/make-server-53dba95c/lucky-draw/enter", async (c) => {
     userData.transactions.unshift({
       id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: 'lucky_draw',
-      amount: -entryPoints,
-      description: `${productName} ??¤?ë¡??ì°¸ì¬`,
+      amount: -finalEntryPoints,
+      description: `${finalProductName} ??¤?ë¡??ì°¸ì¬`,
       createdAt: new Date().toISOString(),
     });
     
@@ -2851,6 +2946,12 @@ app.post("/make-server-53dba95c/lucky-draw/enter", async (c) => {
       userName: userData.userName,
       enteredAt: entry.enteredAt,
     }));
+
+    const drawIndex = luckyDraws.findIndex((draw: any) => draw.id === productId);
+    if (drawIndex !== -1) {
+      luckyDraws[drawIndex].participants = globalEntries.length + 1;
+      await kv.set("lucky-draws", JSON.stringify(luckyDraws));
+    }
     
     return c.json({
       success: true,
@@ -3088,7 +3189,12 @@ app.post("/make-server-53dba95c/admin/products/:ticketType", async (c) => {
       return c.json({ error: "Unsupported ticket type" }, 400);
     }
     const storageTicketType = getProductStorageTicketType(ticketType);
-    const { name, brand, imageUrl, points, probability, stock } = await c.req.json();
+    const payload = await c.req.json();
+    const validation = validateAdminProductPayload(payload);
+    if (validation.error) {
+      return c.json({ error: validation.error }, 400);
+    }
+    const { name, brand, imageUrl, points, probability, stock } = validation.value;
 
     const productsStr = await kv.get(`products:${storageTicketType}`);
     const products = productsStr ? JSON.parse(productsStr) : [];
@@ -3101,8 +3207,8 @@ app.post("/make-server-53dba95c/admin/products/:ticketType", async (c) => {
       brand,
       imageUrl,
       points,
-      probability: probability || 5,
-      stock: stock || 999,
+      probability,
+      stock,
       isActive: true,
       createdAt: new Date().toISOString(),
     };
@@ -3168,10 +3274,19 @@ app.put("/make-server-53dba95c/admin/products/:ticketType/:productId", async (c)
       console.error(`Available IDs: ${products.map((p: any) => p.id).join(', ')}`);
       return c.json({ error: "Product not found", requestedId: productId, availableIds: products.map((p: any) => p.id) }, 404);
     }
+
+    const updateValidation = validateAdminProductPayload({
+      ...products[productIndex],
+      ...updates,
+    });
+    if (updateValidation.error) {
+      return c.json({ error: updateValidation.error }, 400);
+    }
     
     const normalizedUpdates = {
       ...updates,
-      ...(updates.name ? { productNameKey: normalizeProductKey(updates.name) } : {}),
+      ...updateValidation.value,
+      ...(updates.name ? { productNameKey: normalizeProductKey(updateValidation.value.name) } : {}),
       updatedAt: new Date().toISOString(),
     };
     products[productIndex] = { ...products[productIndex], ...normalizedUpdates };
@@ -3246,6 +3361,17 @@ app.delete("/make-server-53dba95c/admin/products/:ticketType/:productId", async 
     }
     
     await kv.set(`products:${storageTicketType}`, JSON.stringify(filteredProducts));
+
+    const homeProductsStr = await kv.get("home:featured-products");
+    if (homeProductsStr) {
+      const homeProducts = JSON.parse(homeProductsStr);
+      const filteredHomeProducts = homeProducts.filter(
+        (p: any) => !(p.id === productId && canonicalizeTicketType(p.ticketType) === ticketType)
+      );
+      if (filteredHomeProducts.length !== homeProducts.length) {
+        await kv.set("home:featured-products", JSON.stringify(filteredHomeProducts));
+      }
+    }
     
     console.log(`Product deleted: ${productId}`);
     
@@ -3364,9 +3490,10 @@ app.get("/make-server-53dba95c/lucky-draws", async (c) => {
   try {
     const luckyDrawsStr = await kv.get("lucky-draws");
     const luckyDraws = luckyDrawsStr ? JSON.parse(luckyDrawsStr) : [];
+    const activeLuckyDraws = luckyDraws.filter((draw: any) => !draw.status || draw.status === "active");
     
-    console.log(`??Found ${luckyDraws.length} lucky draws`);
-    return c.json({ success: true, luckyDraws });
+    console.log(`??Found ${activeLuckyDraws.length} active lucky draws`);
+    return c.json({ success: true, luckyDraws: activeLuckyDraws });
   } catch (error) {
     console.error("Get lucky draws error:", error);
     return c.json({ error: "Failed to fetch lucky draws", details: String(error) }, 500);
@@ -3415,7 +3542,12 @@ app.post("/make-server-53dba95c/admin/lucky-draws", async (c) => {
   console.log("??[POST /admin/lucky-draws] Authentication successful!");
 
   try {
-    const { name, brand, imageUrl, entryPoints, endDate, maxParticipants } = await c.req.json();
+    const payload = await c.req.json();
+    const validation = validateLuckyDrawPayload(payload);
+    if (validation.error) {
+      return c.json({ error: validation.error }, 400);
+    }
+    const { name, brand, imageUrl, entryPoints, endDate, maxParticipants, status } = validation.value;
     
     const luckyDrawsStr = await kv.get("lucky-draws");
     const luckyDraws = luckyDrawsStr ? JSON.parse(luckyDrawsStr) : [];
@@ -3429,7 +3561,7 @@ app.post("/make-server-53dba95c/admin/lucky-draws", async (c) => {
       endDate,
       maxParticipants: maxParticipants || 1000,
       participants: 0,
-      status: 'active',
+      status,
       createdAt: new Date().toISOString(),
     };
     
@@ -3442,6 +3574,85 @@ app.post("/make-server-53dba95c/admin/lucky-draws", async (c) => {
   } catch (error) {
     console.error("Create lucky draw error:", error);
     return c.json({ error: "Failed to create lucky draw", details: String(error) }, 500);
+  }
+});
+
+app.put("/make-server-53dba95c/admin/lucky-draws/:luckyDrawId", async (c) => {
+  console.log("?â?â /admin/lucky-draws/:luckyDrawId PUT REQUEST ?â?â");
+  const adminSecret = getAdminSecretFromHeaders(c);
+  const isValid = await validateAdminAuth(adminSecret);
+  if (!isValid) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const luckyDrawId = c.req.param("luckyDrawId");
+    const updates = await c.req.json();
+    const luckyDrawsStr = await kv.get("lucky-draws");
+    const luckyDraws = luckyDrawsStr ? JSON.parse(luckyDrawsStr) : [];
+    const drawIndex = luckyDraws.findIndex((draw: any) => draw.id === luckyDrawId);
+
+    if (drawIndex === -1) {
+      return c.json({ error: "Lucky draw not found" }, 404);
+    }
+
+    const validation = validateLuckyDrawPayload({
+      ...luckyDraws[drawIndex],
+      ...updates,
+    });
+    if (validation.error) {
+      return c.json({ error: validation.error }, 400);
+    }
+
+    luckyDraws[drawIndex] = {
+      ...luckyDraws[drawIndex],
+      ...validation.value,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await kv.set("lucky-draws", JSON.stringify(luckyDraws));
+    return c.json({ success: true, luckyDraw: luckyDraws[drawIndex] });
+  } catch (error) {
+    console.error("Update lucky draw error:", error);
+    return c.json({ error: "Failed to update lucky draw", details: String(error) }, 500);
+  }
+});
+
+app.delete("/make-server-53dba95c/admin/lucky-draws/:luckyDrawId", async (c) => {
+  console.log("?â?â /admin/lucky-draws/:luckyDrawId DELETE REQUEST ?â?â");
+  const adminSecret = getAdminSecretFromHeaders(c);
+  const isValid = await validateAdminAuth(adminSecret);
+  if (!isValid) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const luckyDrawId = c.req.param("luckyDrawId");
+    const luckyDrawsStr = await kv.get("lucky-draws");
+    const luckyDraws = luckyDrawsStr ? JSON.parse(luckyDrawsStr) : [];
+    const filteredDraws = luckyDraws.filter((draw: any) => draw.id !== luckyDrawId);
+
+    if (filteredDraws.length === luckyDraws.length) {
+      return c.json({ error: "Lucky draw not found" }, 404);
+    }
+
+    await kv.set("lucky-draws", JSON.stringify(filteredDraws));
+
+    const usersData = await kv.getByPrefix("userdata:");
+    for (const userDataStr of usersData) {
+      const userData = JSON.parse(userDataStr);
+      const entries = userData.luckyDrawEntries || [];
+      const filteredEntries = entries.filter((entry: any) => entry.productId !== luckyDrawId);
+      if (filteredEntries.length !== entries.length) {
+        userData.luckyDrawEntries = filteredEntries;
+        await kv.set(`userdata:${userData.kakaoId}`, JSON.stringify(userData));
+      }
+    }
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Delete lucky draw error:", error);
+    return c.json({ error: "Failed to delete lucky draw", details: String(error) }, 500);
   }
 });
 
@@ -3557,6 +3768,22 @@ app.post("/make-server-53dba95c/admin/lucky-draws/:luckyDrawId/draw-winner", asy
           userData.luckyDrawEntries[entryIndex].status = 'lost';
           await kv.set(`userdata:${user.kakaoId}`, JSON.stringify(userData));
         }
+      }
+    }
+
+    const luckyDrawsStr = await kv.get("lucky-draws");
+    if (luckyDrawsStr) {
+      const luckyDraws = JSON.parse(luckyDrawsStr);
+      const drawIndex = luckyDraws.findIndex((draw: any) => draw.id === luckyDrawId);
+      if (drawIndex !== -1) {
+        luckyDraws[drawIndex] = {
+          ...luckyDraws[drawIndex],
+          status: "completed",
+          winnerKakaoId: winner.kakaoId,
+          winnerUserName: winnerData.userName,
+          completedAt: new Date().toISOString(),
+        };
+        await kv.set("lucky-draws", JSON.stringify(luckyDraws));
       }
     }
     
@@ -3724,7 +3951,7 @@ app.get("/make-server-53dba95c/admin/stats", async (c) => {
       const transactions = userData.transactions || [];
       
       transactions.forEach((tx: any) => {
-        if (tx.type === 'charge') {
+        if (tx.type === 'charge' || tx.type === 'point_charge') {
           totalPointsCharged += tx.amount;
         } else if (tx.type === 'ticket_purchase') {
           totalTicketsSold++;

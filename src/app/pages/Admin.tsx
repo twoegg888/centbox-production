@@ -3,7 +3,6 @@ import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 import { Link, useNavigate } from "react-router";
 import ShippingTab from "../components/ShippingTab";
 import HomeProductsTab from "../components/HomeProductsTab";
-import { useApp } from "../context/AppContext";
 import * as XLSX from 'xlsx';
 import { canonicalizeBoxTicketType } from "../utils/ticketTypes";
 
@@ -16,6 +15,38 @@ const TICKET_TYPE_NAMES: Record<TicketType, string> = {
   lucky: '행운의 상자',
   starlight: '별빛 상자',
 };
+
+const IMAGE_FALLBACK_SRC = 'https://via.placeholder.com/160?text=No+Image';
+
+function isValidHttpUrl(value: string) {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function AdminImage({
+  src,
+  alt,
+  className,
+}: {
+  src?: string;
+  alt: string;
+  className: string;
+}) {
+  return (
+    <img
+      src={src || IMAGE_FALLBACK_SRC}
+      alt={alt}
+      className={className}
+      onError={(e) => {
+        e.currentTarget.src = IMAGE_FALLBACK_SRC;
+      }}
+    />
+  );
+}
 
 // 🔐 관리자 API 호출 헤더 (모든 컴포넌트에서 사용 가능)
 const getAuthHeaders = () => {
@@ -221,7 +252,6 @@ function DashboardTab({ isAuthenticated }: { isAuthenticated: boolean }) {
     try {
       const headers = getAuthHeaders();
       if (!headers) return; // 🚨 헤더가 null이면 종료
-      console.log('📊 [fetchStats] Calling /admin/stats...');
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/stats`,
         {
@@ -310,7 +340,7 @@ function DashboardTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         <h3 className="text-lg font-medium text-gray-900 mb-4">⚠️ 관리자 알림</h3>
         <div className="space-y-2 text-sm text-gray-600">
           <p>• 상품 관리 탭에서 박스별 당첨 상품을 추가/수정할 수 있습니다.</p>
-          <p>• 회원 ���리 탭에서 포인트를 직접 충전/차감할 수 있습니다.</p>
+          <p>• 회원 관리 탭에서 포인트를 직접 충전할 수 있습니다.</p>
           <p>• 럭키드로우 탭에서 이벤트를 생성하고 당첨자를 선정할 수 있습니다.</p>
         </div>
       </div>
@@ -686,8 +716,6 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      console.log('📊 엑셀 데이터:', jsonData);
-
       if (jsonData.length === 0) {
         alert('❌ 엑셀 파일에 데이터가 없습니다.');
         return;
@@ -717,6 +745,10 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
           errors.push(`${rowNum}행: 이미지URL이 없습니다.`);
           return;
         }
+        if (!isValidHttpUrl(String(row['이미지URL']))) {
+          errors.push(`${rowNum}행: 이미지URL은 http 또는 https URL이어야 합니다.`);
+          return;
+        }
 
         // 티켓 타입 검증
         const ticketType = canonicalizeBoxTicketType(String(row['박스타입']).toLowerCase());
@@ -726,13 +758,30 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
           return;
         }
 
+        const points = Number(row['포인트']) || 1000;
+        const probability = Number(row['가중치']) || 5;
+        const stock = Number(row['재고']) || 999;
+
+        if (points <= 0) {
+          errors.push(`${rowNum}행: 포인트는 1 이상이어야 합니다.`);
+          return;
+        }
+        if (probability < 0) {
+          errors.push(`${rowNum}행: 가중치는 0 이상이어야 합니다.`);
+          return;
+        }
+        if (stock < 0) {
+          errors.push(`${rowNum}행: 재고는 0 이상이어야 합니다.`);
+          return;
+        }
+
         productsToAdd.push({
           ticketType,
           name: String(row['상품명']),
           brand: String(row['브랜드']),
-          points: Number(row['포인트']) || 1000,
-          probability: Number(row['가중치']) || 5,
-          stock: Number(row['재고']) || 999,
+          points,
+          probability,
+          stock,
           imageUrl: String(row['이미지URL']),
         });
       });
@@ -912,7 +961,7 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
                 <div className="px-4 py-4 sm:px-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <img
+                      <AdminImage
                         src={product.imageUrl}
                         alt={product.name}
                         className="w-16 h-16 object-cover rounded"
@@ -990,23 +1039,48 @@ function ProductModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const trimmedData = {
+      ...formData,
+      name: formData.name.trim(),
+      brand: formData.brand.trim(),
+      imageUrl: formData.imageUrl.trim(),
+    };
+
+    if (!trimmedData.name || !trimmedData.brand) {
+      alert('❌ 상품명과 브랜드를 입력해주세요.');
+      return;
+    }
+
+    if (!isValidHttpUrl(trimmedData.imageUrl)) {
+      alert('❌ 이미지 URL은 http 또는 https로 시작하는 올바른 URL이어야 합니다.');
+      return;
+    }
+
+    if (trimmedData.points <= 0) {
+      alert('❌ 포인트는 1 이상이어야 합니다.');
+      return;
+    }
+
+    if (trimmedData.probability < 0) {
+      alert('❌ 가중치는 0 이상이어야 합니다.');
+      return;
+    }
+
+    if (trimmedData.stock < 0) {
+      alert('❌ 재고는 0 이상이어야 합니다.');
+      return;
+    }
+
     try {
       const headers = getAuthHeaders();
       if (!headers) {
         alert('❌ 인증 정보가 없습니다. 다시 로그인해주세요.');
         return;
       }
-      
-      console.log('🔍 [ProductModal] product:', product);
-      console.log('🔍 [ProductModal] product.id:', product?.id);
-      console.log('🔍 [ProductModal] ticketType:', ticketType);
-      
+
       const url = product
         ? `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/products/${ticketType}/${product.id}`
         : `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/products/${ticketType}`;
-
-      console.log('🔍 [ProductModal] Request URL:', url);
-      console.log('🔍 [ProductModal] Request method:', product ? 'PUT' : 'POST');
 
       const response = await fetch(url, {
         method: product ? 'PUT' : 'POST',
@@ -1014,11 +1088,10 @@ function ProductModal({
           'Content-Type': 'application/json',
           ...headers,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(trimmedData),
       });
 
       const data = await response.json();
-      console.log('🔍 [ProductModal] Response:', data);
 
       if (data.success) {
         alert(`✅ ${product ? '수정' : '추가'}되었습니다.`);
@@ -1065,13 +1138,25 @@ function ProductModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">이미지 URL</label>
             <input
-              type="text"
+              type="url"
               value={formData.imageUrl}
               onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               placeholder="https://images.unsplash.com/..."
               required
             />
+            {formData.imageUrl && (
+              <div className="mt-2 flex items-center gap-3 rounded-md bg-gray-50 p-2">
+                <AdminImage
+                  src={formData.imageUrl}
+                  alt="상품 이미지 미리보기"
+                  className="w-16 h-16 object-cover rounded"
+                />
+                <p className="text-xs text-gray-500">
+                  저장 전 이미지가 정상 표시되는지 확인하세요.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-2">
@@ -1082,6 +1167,7 @@ function ProductModal({
                 value={formData.points}
                 onChange={(e) => setFormData({ ...formData, points: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                min="1"
                 required
               />
             </div>
@@ -1110,6 +1196,7 @@ function ProductModal({
                 value={formData.stock}
                 onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                min="0"
                 required
               />
             </div>
@@ -1143,6 +1230,10 @@ function LuckyDrawsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [luckyDraws, setLuckyDraws] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingDraw, setEditingDraw] = useState<any>(null);
+  const [participantsDraw, setParticipantsDraw] = useState<any>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -1213,6 +1304,101 @@ function LuckyDrawsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
     }
   };
 
+  const handleUpdateDrawStatus = async (draw: any, status: string) => {
+    const label = status === 'ended' ? '종료' : '활성화';
+    if (!confirm(`"${draw.name}" 럭키드로우를 ${label}하시겠습니까?`)) return;
+
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) {
+        alert('❌ 인증 정보가 없습니다. 다시 로그인해주세요.');
+        return;
+      }
+
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/lucky-draws/${draw.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          body: JSON.stringify({ ...draw, status }),
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`✅ 럭키드로우가 ${label}되었습니다.`);
+        fetchLuckyDraws();
+      } else {
+        alert(`❌ 실패: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`❌ 에러: ${error}`);
+    }
+  };
+
+  const handleDeleteDraw = async (draw: any) => {
+    if (!confirm(`"${draw.name}" 럭키드로우를 삭제하시겠습니까?\n\n참여 내역도 함께 정리됩니다.`)) return;
+
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) {
+        alert('❌ 인증 정보가 없습니다. 다시 로그인해주세요.');
+        return;
+      }
+
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/lucky-draws/${draw.id}`,
+        {
+          method: 'DELETE',
+          headers,
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        alert('✅ 럭키드로우가 삭제되었습니다.');
+        fetchLuckyDraws();
+      } else {
+        alert(`❌ 실패: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`❌ 에러: ${error}`);
+    }
+  };
+
+  const handleLoadParticipants = async (draw: any) => {
+    setParticipantsDraw(draw);
+    setParticipants([]);
+    setParticipantsLoading(true);
+
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) {
+        alert('❌ 인증 정보가 없습니다. 다시 로그인해주세요.');
+        return;
+      }
+
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/lucky-draws/${draw.id}/participants`,
+        { headers }
+      );
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setParticipants(data.participants || []);
+      } else {
+        alert(`❌ 참여자 조회 실패: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`❌ 에러: ${error}`);
+    } finally {
+      setParticipantsLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-12">로딩 중...</div>;
   }
@@ -1248,7 +1434,7 @@ function LuckyDrawsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
           {luckyDraws.map((draw) => (
             <div key={draw.id} className="bg-white shadow rounded-lg p-6">
               <div className="flex items-center gap-4 mb-4">
-                <img
+                <AdminImage
                   src={draw.imageUrl}
                   alt={draw.name}
                   className="w-20 h-20 object-cover rounded"
@@ -1257,14 +1443,43 @@ function LuckyDrawsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
                   <h3 className="font-bold text-gray-900">{draw.name}</h3>
                   <p className="text-sm text-gray-500">{draw.brand}</p>
                   <p className="text-sm text-gray-500">참여: {draw.entryPoints.toLocaleString()}P</p>
+                  <p className="text-xs text-gray-500">
+                    상태: {draw.status === 'ended' ? '종료' : draw.status === 'completed' ? '추첨완료' : '진행중'}
+                    {draw.endDate ? ` · 종료일 ${draw.endDate}` : ''}
+                  </p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleLoadParticipants(draw)}
+                  className="bg-gray-100 text-gray-800 py-2 rounded hover:bg-gray-200 text-sm"
+                >
+                  참여자 보기
+                </button>
+                <button
+                  onClick={() => setEditingDraw(draw)}
+                  className="bg-gray-100 text-gray-800 py-2 rounded hover:bg-gray-200 text-sm"
+                >
+                  수정
+                </button>
                 <button
                   onClick={() => handleDrawWinner(draw.id)}
-                  className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 text-sm"
+                  disabled={draw.status === 'ended' || draw.status === 'completed'}
+                  className="bg-green-600 text-white py-2 rounded hover:bg-green-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   🎲 추첨하기
+                </button>
+                <button
+                  onClick={() => handleUpdateDrawStatus(draw, draw.status === 'ended' ? 'active' : 'ended')}
+                  className="bg-yellow-100 text-yellow-800 py-2 rounded hover:bg-yellow-200 text-sm"
+                >
+                  {draw.status === 'ended' ? '다시 활성화' : '종료'}
+                </button>
+                <button
+                  onClick={() => handleDeleteDraw(draw)}
+                  className="col-span-2 bg-red-100 text-red-700 py-2 rounded hover:bg-red-200 text-sm"
+                >
+                  삭제
                 </button>
               </div>
             </div>
@@ -1278,29 +1493,107 @@ function LuckyDrawsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
           onSuccess={fetchLuckyDraws}
         />
       )}
+
+      {editingDraw && (
+        <LuckyDrawModal
+          luckyDraw={editingDraw}
+          onClose={() => setEditingDraw(null)}
+          onSuccess={fetchLuckyDraws}
+        />
+      )}
+
+      {participantsDraw && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">참여자 목록 - {participantsDraw.name}</h3>
+              <button
+                onClick={() => setParticipantsDraw(null)}
+                className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm"
+              >
+                닫기
+              </button>
+            </div>
+            {participantsLoading ? (
+              <div className="text-center py-8">로딩 중...</div>
+            ) : participants.length === 0 ? (
+              <p className="text-sm text-gray-500">참여자가 없습니다.</p>
+            ) : (
+              <div className="space-y-2">
+                {participants.map((participant) => (
+                  <div key={`${participant.kakaoId}-${participant.enteredAt}`} className="border rounded p-3">
+                    <div className="flex justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-sm">{participant.userName || '이름 없음'}</p>
+                        <p className="text-xs text-gray-500">카카오 ID: {participant.kakaoId}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">{participant.status}</p>
+                        <p className="text-xs text-gray-500">
+                          {participant.enteredAt ? new Date(participant.enteredAt).toLocaleString('ko-KR') : '-'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // 럭키드로우 추가 모달
 function LuckyDrawModal({
+  luckyDraw,
   onClose,
   onSuccess,
 }: {
+  luckyDraw?: any;
   onClose: () => void;
   onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState({
-    name: '',
-    brand: '',
-    imageUrl: '',
-    entryPoints: 10000,
-    endDate: '',
-    maxParticipants: 1000,
+    name: luckyDraw?.name || '',
+    brand: luckyDraw?.brand || '',
+    imageUrl: luckyDraw?.imageUrl || '',
+    entryPoints: luckyDraw?.entryPoints || 10000,
+    endDate: luckyDraw?.endDate || '',
+    maxParticipants: luckyDraw?.maxParticipants || 1000,
+    status: luckyDraw?.status || 'active',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const trimmedData = {
+      ...formData,
+      name: formData.name.trim(),
+      brand: formData.brand.trim(),
+      imageUrl: formData.imageUrl.trim(),
+    };
+
+    if (!trimmedData.name || !trimmedData.brand) {
+      alert('❌ 상품명과 브랜드를 입력해주세요.');
+      return;
+    }
+
+    if (!isValidHttpUrl(trimmedData.imageUrl)) {
+      alert('❌ 이미지 URL은 http 또는 https로 시작하는 올바른 URL이어야 합니다.');
+      return;
+    }
+
+    if (trimmedData.entryPoints <= 0) {
+      alert('❌ 참여 포인트는 1 이상이어야 합니다.');
+      return;
+    }
+
+    if (trimmedData.maxParticipants <= 0) {
+      alert('❌ 최대 참여자는 1명 이상이어야 합니다.');
+      return;
+    }
 
     try {
       const headers = getAuthHeaders();
@@ -1308,23 +1601,24 @@ function LuckyDrawModal({
         alert('❌ 인증 정보가 없습니다. 다시 로그인해주세요.');
         return;
       }
+
+      const url = luckyDraw
+        ? `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/lucky-draws/${luckyDraw.id}`
+        : `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/lucky-draws`;
       
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/lucky-draws`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+      const response = await fetch(url, {
+        method: luckyDraw ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify(trimmedData),
+      });
 
       const data = await response.json();
 
       if (data.success) {
-        alert('✅ 럭키드로우가 추가되었습니다.');
+        alert(`✅ 럭키드로우가 ${luckyDraw ? '수정' : '추가'}되었습니다.`);
         onSuccess();
         onClose();
       } else {
@@ -1338,7 +1632,7 @@ function LuckyDrawModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 className="text-lg font-bold mb-4">럭키드로우 추가</h3>
+        <h3 className="text-lg font-bold mb-4">럭키드로우 {luckyDraw ? '수정' : '추가'}</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -1366,12 +1660,22 @@ function LuckyDrawModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">이미지 URL</label>
             <input
-              type="text"
+              type="url"
               value={formData.imageUrl}
               onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               required
             />
+            {formData.imageUrl && (
+              <div className="mt-2 flex items-center gap-3 rounded-md bg-gray-50 p-2">
+                <AdminImage
+                  src={formData.imageUrl}
+                  alt="럭키드로우 이미지 미리보기"
+                  className="w-16 h-16 object-cover rounded"
+                />
+                <p className="text-xs text-gray-500">이미지 미리보기</p>
+              </div>
+            )}
           </div>
 
           <div>
@@ -1381,16 +1685,56 @@ function LuckyDrawModal({
               value={formData.entryPoints}
               onChange={(e) => setFormData({ ...formData, entryPoints: Number(e.target.value) })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              min="1"
               required
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">종료일</label>
+              <input
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">최대 참여자</label>
+              <input
+                type="number"
+                value={formData.maxParticipants}
+                onChange={(e) => setFormData({ ...formData, maxParticipants: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                min="1"
+                required
+              />
+            </div>
+          </div>
+
+          {luckyDraw && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">상태</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="active">진행중</option>
+                <option value="ended">종료</option>
+                <option value="completed">추첨완료</option>
+              </select>
+            </div>
+          )}
 
           <div className="flex gap-2 pt-4">
             <button
               type="submit"
               className="flex-1 bg-black text-white py-2 rounded hover:bg-gray-800"
             >
-              추가
+              {luckyDraw ? '수정' : '추가'}
             </button>
             <button
               type="button"

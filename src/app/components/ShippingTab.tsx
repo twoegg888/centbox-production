@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 
+const IMAGE_FALLBACK_SRC = 'https://via.placeholder.com/160?text=No+Image';
+
 // 🔐 관리자 API 호출 헤더 생성
 const getAuthHeaders = () => {
   const adminSecret = sessionStorage.getItem('admin_secret');
@@ -18,6 +20,7 @@ const getAuthHeaders = () => {
 export default function ShippingTab({ isAuthenticated }: { isAuthenticated?: boolean }) {
   const [shippingRequests, setShippingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending' | 'shipped' | 'delivered'>('all');
 
   useEffect(() => {
@@ -30,6 +33,8 @@ export default function ShippingTab({ isAuthenticated }: { isAuthenticated?: boo
     try {
       const headers = getAuthHeaders();
       if (!headers) {
+        setErrorMessage('인증 정보가 없습니다. 다시 로그인해주세요.');
+        setLoading(false);
         return;
       }
       
@@ -40,9 +45,18 @@ export default function ShippingTab({ isAuthenticated }: { isAuthenticated?: boo
         }
       );
       const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(data.error || data.message || '배송 요청을 불러오지 못했습니다.');
+        setShippingRequests([]);
+        return;
+      }
+
+      setErrorMessage('');
       setShippingRequests(data.requests || []);
     } catch (error) {
       console.error('Error fetching shipping requests:', error);
+      setErrorMessage(`배송 요청을 불러오는 중 오류가 발생했습니다: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -137,6 +151,12 @@ export default function ShippingTab({ isAuthenticated }: { isAuthenticated?: boo
         </div>
       </div>
 
+      {errorMessage && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      )}
+
       {filteredRequests.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <p className="text-gray-500">배송 요청이 없습니다.</p>
@@ -147,9 +167,12 @@ export default function ShippingTab({ isAuthenticated }: { isAuthenticated?: boo
             <div key={request.ticketId} className="bg-white shadow rounded-lg p-6">
               <div className="flex gap-4">
                 <img
-                  src={request.ticket.productImage}
+                  src={request.ticket.productImage || IMAGE_FALLBACK_SRC}
                   alt={request.ticket.productName}
                   className="w-24 h-24 object-cover rounded"
+                  onError={(e) => {
+                    e.currentTarget.src = IMAGE_FALLBACK_SRC;
+                  }}
                 />
                 <div className="flex-1">
                   <div className="flex justify-between items-start mb-2">
