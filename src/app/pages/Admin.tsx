@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 import { Link, useNavigate } from "react-router";
 import ShippingTab from "../components/ShippingTab";
@@ -762,6 +762,9 @@ function ProductsTab({
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -774,6 +777,34 @@ function ProductsTab({
       setSelectedTicketType(boxSettings[0]?.ticketType || 'legendary');
     }
   }, [boxSettings, selectedTicketType]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setSearchTerm('');
+  }, [selectedTicketType]);
+
+  const filteredProducts = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    if (!normalizedSearch) return products;
+
+    return products.filter((product) => {
+      const values = [product.name, product.brand, product.id, product.points, product.probability, product.stock];
+      return values.some((value) => String(value || '').toLowerCase().includes(normalizedSearch));
+    });
+  }, [products, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return filteredProducts.slice(startIndex, startIndex + pageSize);
+  }, [filteredProducts, pageSize, safeCurrentPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -1129,6 +1160,43 @@ function ProductsTab({
         ))}
       </div>
 
+      <div className="bg-white shadow rounded-lg p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">상품 검색</label>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="상품명, 브랜드, ID, 포인트로 검색"
+            />
+          </div>
+          <div className="w-full md:w-40">
+            <label className="block text-sm font-medium text-gray-700 mb-1">페이지당 표시</label>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value={25}>25개</option>
+              <option value={50}>50개</option>
+              <option value={100}>100개</option>
+              <option value={200}>200개</option>
+            </select>
+          </div>
+        </div>
+        <div className="mt-3 text-sm text-gray-600">
+          전체 {products.length.toLocaleString()}개 중 {filteredProducts.length.toLocaleString()}개 표시 대상
+        </div>
+      </div>
+
       {/* 상품 목록 */}
       {loading ? (
         <div className="text-center py-12">로딩 중...</div>
@@ -1146,11 +1214,22 @@ function ProductsTab({
             첫 상품 등록하기
           </button>
         </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="bg-white shadow rounded-lg p-12 text-center">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">검색 결과가 없습니다</h3>
+          <p className="text-sm text-gray-500 mb-6">검색어를 바꾸거나 지워주세요.</p>
+          <button
+            onClick={() => setSearchTerm('')}
+            className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 font-medium"
+          >
+            검색 초기화
+          </button>
+        </div>
       ) : (
         <>
           <div className="bg-white shadow overflow-hidden sm:rounded-md">
             <ul className="divide-y divide-gray-200">
-            {products.map((product) => (
+            {paginatedProducts.map((product) => (
               <li key={product.id}>
                 <div className="px-4 py-4 sm:px-6">
                   <div className="flex items-center justify-between">
@@ -1189,6 +1268,46 @@ function ProductsTab({
               </li>
             ))}
           </ul>
+        </div>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-gray-600">
+            {((safeCurrentPage - 1) * pageSize + 1).toLocaleString()}-
+            {Math.min(safeCurrentPage * pageSize, filteredProducts.length).toLocaleString()} /
+            {filteredProducts.length.toLocaleString()}개
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={safeCurrentPage === 1}
+              className="px-3 py-2 bg-white border rounded disabled:opacity-40"
+            >
+              처음
+            </button>
+            <button
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safeCurrentPage === 1}
+              className="px-3 py-2 bg-white border rounded disabled:opacity-40"
+            >
+              이전
+            </button>
+            <span className="px-3 py-2 text-sm text-gray-700">
+              {safeCurrentPage} / {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={safeCurrentPage === totalPages}
+              className="px-3 py-2 bg-white border rounded disabled:opacity-40"
+            >
+              다음
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={safeCurrentPage === totalPages}
+              className="px-3 py-2 bg-white border rounded disabled:opacity-40"
+            >
+              끝
+            </button>
+          </div>
         </div>
         </>
       )}

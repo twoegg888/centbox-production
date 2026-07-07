@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 import { canonicalizeBoxTicketType } from "../utils/ticketTypes";
 import { BoxSetting, DEFAULT_BOX_DISPLAY_NAMES, DEFAULT_BOX_SETTINGS } from "../utils/boxSettings";
@@ -36,6 +36,9 @@ export default function HomeProductsTab({
   const [selectedTicketType, setSelectedTicketType] = useState<TicketType>(boxSettings[0]?.ticketType || 'legendary');
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 60;
 
   // 🔐 관리자 API 호출 헤더
   const getAuthHeaders = () => {
@@ -113,6 +116,28 @@ export default function HomeProductsTab({
       setSelectedTicketType(boxSettings[0]?.ticketType || 'legendary');
     }
   }, [boxSettings, selectedTicketType]);
+
+  useEffect(() => {
+    setSearchTerm('');
+    setCurrentPage(1);
+  }, [selectedTicketType]);
+
+  const filteredAvailableProducts = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    if (!normalizedSearch) return availableProducts;
+
+    return availableProducts.filter((product) =>
+      [product.name, product.brand, product.id, product.points]
+        .some((value) => String(value || '').toLowerCase().includes(normalizedSearch))
+    );
+  }, [availableProducts, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAvailableProducts.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedAvailableProducts = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return filteredAvailableProducts.slice(startIndex, startIndex + pageSize);
+  }, [filteredAvailableProducts, safeCurrentPage]);
 
   // 상품 추가
   const handleAddProduct = async (productId: string) => {
@@ -267,11 +292,29 @@ export default function HomeProductsTab({
           <h3 className="text-sm font-medium mb-3">
             {displayNames[selectedTicketType] || TICKET_TYPE_NAMES[selectedTicketType]} 상품 ({availableProducts.length}개)
           </h3>
+          <div className="mb-3">
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border rounded"
+              placeholder="상품명, 브랜드, ID, 포인트로 검색"
+            />
+            <p className="mt-2 text-xs text-gray-600">
+              전체 {availableProducts.length.toLocaleString()}개 중 {filteredAvailableProducts.length.toLocaleString()}개 표시 대상
+            </p>
+          </div>
           {availableProducts.length === 0 ? (
             <p className="text-gray-500">상품이 없습니다.</p>
+          ) : filteredAvailableProducts.length === 0 ? (
+            <p className="text-gray-500">검색 결과가 없습니다.</p>
           ) : (
+            <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-              {availableProducts.map((product) => {
+              {paginatedAvailableProducts.map((product) => {
                 const isAdded = homeProducts.some(
                   (hp) => hp.id === product.id && hp.ticketType === selectedTicketType
                 );
@@ -308,6 +351,31 @@ export default function HomeProductsTab({
                 );
               })}
             </div>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <p className="text-xs text-gray-600">
+                {((safeCurrentPage - 1) * pageSize + 1).toLocaleString()}-
+                {Math.min(safeCurrentPage * pageSize, filteredAvailableProducts.length).toLocaleString()} /
+                {filteredAvailableProducts.length.toLocaleString()}개
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={safeCurrentPage === 1}
+                  className="px-3 py-1 bg-white border rounded text-sm disabled:opacity-40"
+                >
+                  이전
+                </button>
+                <span className="px-2 py-1 text-sm">{safeCurrentPage} / {totalPages}</span>
+                <button
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  disabled={safeCurrentPage === totalPages}
+                  className="px-3 py-1 bg-white border rounded text-sm disabled:opacity-40"
+                >
+                  다음
+                </button>
+              </div>
+            </div>
+            </>
           )}
         </div>
       </div>
