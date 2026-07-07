@@ -17,6 +17,7 @@ type BannerProduct = {
 
 interface Props {
   onCategoryClick?: (label: string) => void;
+  staticLayout?: boolean;
 }
 
 function getRandomUserName() {
@@ -32,13 +33,16 @@ function formatBannerMessage(productName: string) {
   return `${getRandomUserName()}님께서 "${productName}"를 획득했어요!`;
 }
 
-export default function SharedHeader({ onCategoryClick }: Props) {
-  const [isBannerDismissed, setIsBannerDismissed] = useState(() => sessionStorage.getItem(DISMISSED_BANNER_KEY) === "true");
+export default function SharedHeader({ onCategoryClick, staticLayout = false }: Props) {
+  const [isBannerDismissed, setIsBannerDismissed] = useState(
+    () => !staticLayout && sessionStorage.getItem(DISMISSED_BANNER_KEY) === "true"
+  );
   const [bannerProducts, setBannerProducts] = useState<BannerProduct[]>([]);
   const [bannerIndex, setBannerIndex] = useState(0);
+  const shouldShowBanner = staticLayout || !isBannerDismissed;
 
   useEffect(() => {
-    if (isBannerDismissed) return;
+    if (staticLayout || isBannerDismissed) return;
 
     const fetchBannerProducts = async () => {
       try {
@@ -71,17 +75,17 @@ export default function SharedHeader({ onCategoryClick }: Props) {
     };
 
     void fetchBannerProducts();
-  }, [isBannerDismissed]);
+  }, [isBannerDismissed, staticLayout]);
 
   useEffect(() => {
-    if (bannerProducts.length <= 1 || isBannerDismissed) return;
+    if (staticLayout || bannerProducts.length <= 1 || isBannerDismissed) return;
 
     const intervalId = window.setInterval(() => {
       setBannerIndex((currentIndex) => (currentIndex + 1) % bannerProducts.length);
     }, 3500);
 
     return () => window.clearInterval(intervalId);
-  }, [bannerProducts.length, isBannerDismissed]);
+  }, [bannerProducts.length, isBannerDismissed, staticLayout]);
 
   const bannerMessage = useMemo(() => {
     const product = bannerProducts[bannerIndex];
@@ -99,33 +103,33 @@ export default function SharedHeader({ onCategoryClick }: Props) {
       style={{ height: HEADER_HEIGHT }}
     >
       {/* ── 1. Head Banner (52px) ──────────────────────────── */}
-      {!isBannerDismissed && (
+      {shouldShowBanner && (
       <div className="absolute top-0 left-0 w-full h-[52px] bg-[rgba(0,0,71,0.8)]">
         {/* 닫기 버튼 */}
-        <button
-          aria-label="상단 배너 닫기"
-          className="absolute left-[432px] top-[12px] flex size-[30px] items-center justify-center"
-          onClick={handleDismissBanner}
-          type="button"
-        >
-          <div className="size-[12px]">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 12 12">
-              <path d="M11 1L1 11" stroke="white" strokeLinecap="round" strokeWidth="2" />
-              <path d="M1 1L11 11" stroke="white" strokeLinecap="round" strokeWidth="2" />
-            </svg>
-          </div>
-        </button>
+        {!staticLayout && (
+          <button
+            aria-label="상단 배너 닫기"
+            className="absolute right-[16px] top-1/2 flex size-[30px] -translate-y-1/2 items-center justify-center"
+            onClick={handleDismissBanner}
+            type="button"
+          >
+            <div className="size-[12px]">
+              <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 12 12">
+                <path d="M11 1L1 11" stroke="white" strokeLinecap="round" strokeWidth="2" />
+                <path d="M1 1L11 11" stroke="white" strokeLinecap="round" strokeWidth="2" />
+              </svg>
+            </div>
+          </button>
+        )}
         {/* 배너 텍스트 */}
         <div
-          className="[word-break:break-word] absolute flex w-[320px] flex-col overflow-hidden font-medium justify-center leading-[0] left-[80px] text-[15px] text-white tracking-[-0.6px] whitespace-nowrap"
+          className="absolute left-[24px] right-[58px] top-0 flex h-full items-center overflow-hidden text-[15px] font-medium leading-[20px] text-white tracking-[-0.6px]"
           style={{
-            top: "50%",
-            transform: "translateY(-50%)",
             fontFamily: "'Noto Sans KR', 'Noto Sans', sans-serif",
             fontVariationSettings: '"CTGR" 100, "wdth" 100',
           }}
         >
-          <p className="animate-[headerBannerText_350ms_ease-out] truncate leading-[13px]" key={bannerMessage}>
+          <p className="animate-[headerBannerText_350ms_ease-out] truncate leading-[20px]" key={bannerMessage}>
             {bannerMessage}
           </p>
         </div>
@@ -133,7 +137,7 @@ export default function SharedHeader({ onCategoryClick }: Props) {
       )}
 
       {/* ── 2. Header Bar (60px, top=52) ───────────────────── */}
-      <div className="absolute left-0 w-full h-[60px] bg-white" style={{ top: isBannerDismissed ? 0 : HEADER_BANNER_HEIGHT }}>
+      <div className="absolute left-0 w-full h-[60px] bg-white" style={{ top: shouldShowBanner ? HEADER_BANNER_HEIGHT : 0 }}>
         {/* 로고: top=69px 기준(헤더 영역 내 픽셀) */}
         <div className="absolute" style={{ top: 17, left: 26, width: 89, height: 26 }}>
           <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 89 26.1203">
@@ -468,10 +472,10 @@ export default function SharedHeader({ onCategoryClick }: Props) {
       </div>
 
       {/* ── 3. 구분선 ──────────────────────────────────────── */}
-      <div className="absolute bg-[#ececec] h-px left-0 right-0" style={{ top: isBannerDismissed ? 59 : 111 }} />
+      <div className="absolute bg-[#ececec] h-px left-0 right-0" style={{ top: shouldShowBanner ? 111 : 59 }} />
 
       {/* ── 4. 카테고리 바 (50px, top=112) ─────────────────── */}
-      <div className="absolute left-0 right-0 h-[50px] bg-white border border-[#eaeaea] border-solid" style={{ top: isBannerDismissed ? 60 : 112 }}>
+      <div className="absolute left-0 right-0 h-[50px] bg-white border border-[#eaeaea] border-solid" style={{ top: shouldShowBanner ? 112 : 60 }}>
         {[
           { label: "이용방법", left: 40 },
           { label: "이벤트",   left: 158 },

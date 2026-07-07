@@ -25,7 +25,7 @@ function HeaderBrandLogo({
           transformOrigin: 'top left',
         }}
       >
-        <SharedHeader />
+        <SharedHeader staticLayout />
       </div>
     </div>
   );
