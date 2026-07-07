@@ -177,12 +177,14 @@ function TreasureProductRail({
   boxSettings: BoxSetting[];
   onOpenProduct: (productName: string | undefined, fallbackTicketType: TicketTypePath) => void;
 }) {
-  const loopProducts = products.length >= 4 ? [...products, ...products] : products;
+  const repeatCount = products.length > 0 ? Math.max(1, Math.ceil(4 / products.length)) : 1;
+  const railProducts = Array.from({ length: repeatCount }).flatMap(() => products);
+  const loopProducts = products.length > 1 ? [...railProducts, ...railProducts] : products;
 
   return (
     <div className="absolute left-0 top-[660px] z-20 h-[300px] w-full overflow-hidden bg-white pb-[20px]">
       {products.length > 0 ? (
-        <div className={`flex gap-[16px] px-[2px] ${products.length >= 4 ? "animate-[homeRail_28s_linear_infinite]" : ""}`}>
+        <div className={`flex w-max gap-[16px] px-[2px] ${products.length > 1 ? "home-treasure-track" : ""}`}>
           {loopProducts.map((product, index) => (
             <DynamicProductCard
               key={`${product.ticketType}-${product.id}-${index}`}
@@ -376,6 +378,9 @@ export default function Home() {
           @keyframes homeRail {
             from { transform: translateX(0); }
             to { transform: translateX(-50%); }
+          }
+          .home-treasure-track {
+            animation: homeRail 28s linear infinite;
           }
         `}</style>
 
