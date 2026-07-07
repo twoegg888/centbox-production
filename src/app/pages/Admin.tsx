@@ -133,7 +133,7 @@ export default function Admin() {
     <div className="min-h-screen bg-[#f8f9fa]">
       {/* 헤더 */}
       <div className="bg-white border-b border-[#e5e7eb] sticky top-0 z-20 shadow-sm">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+        <div className="mx-auto max-w-[1920px] px-4 sm:px-6 xl:px-8">
           <div className="flex min-h-[64px] flex-col justify-center gap-3 py-3 sm:h-[72px] sm:flex-row sm:items-center sm:justify-between sm:py-0">
             <div className="flex items-center gap-3 sm:gap-6">
               <Link to="/" className="text-[#6b7280] hover:text-[#111827] transition-colors font-['Pretendard:Medium',sans-serif] text-[13px] sm:text-[14px]">
@@ -154,7 +154,7 @@ export default function Admin() {
 
       {/* 탭 네비게이션 */}
       <div className="bg-white border-b border-[#e5e7eb] sticky top-[104px] z-10 sm:static">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+        <div className="mx-auto max-w-[1920px] px-4 sm:px-6 xl:px-8">
           <nav className="flex gap-2 overflow-x-auto py-2 sm:gap-[32px] sm:py-0">
             <button
               onClick={() => setActiveTab('dashboard')}
@@ -241,7 +241,7 @@ export default function Admin() {
       </div>
 
       {/* 탭 컨텐츠 */}
-      <div className="max-w-[1400px] mx-auto px-4 py-[20px] sm:px-6 sm:py-[32px]">
+      <div className="mx-auto max-w-[1920px] px-4 py-[20px] sm:px-6 sm:py-[32px] xl:px-8">
         {activeTab === 'dashboard' && <DashboardTab isAuthenticated={isAuthenticated} />}
         {activeTab === 'users' && <UsersTab isAuthenticated={isAuthenticated} />}
         {activeTab === 'products' && <ProductsTab isAuthenticated={isAuthenticated} boxSettings={activeBoxSettings} displayNames={displayNames} />}
