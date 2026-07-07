@@ -350,13 +350,20 @@ export default function TicketDetailTemplate({
       )}
 
       {showVideo && (
-        <div className="fixed inset-0 z-[100] w-[480px] h-screen mx-auto bg-[#280600]">
-          <video autoPlay playsInline muted className="absolute max-w-none object-cover w-full h-full" src={DRAW_ANIMATION_URL} />
+        <div className="fixed inset-y-0 left-1/2 z-[100] h-screen w-full max-w-[480px] -translate-x-1/2 bg-[#280600]">
+          <video
+            autoPlay
+            playsInline
+            muted
+            preload="auto"
+            className="absolute inset-0 h-full w-full object-cover"
+            src={DRAW_ANIMATION_URL}
+          />
         </div>
       )}
 
       {wonTickets.length > 0 && (
-        <div className="fixed inset-0 z-[100] w-[480px] h-screen mx-auto">
+        <div className="fixed inset-y-0 left-1/2 z-[100] h-screen w-full max-w-[480px] -translate-x-1/2">
           <WinningAnimation
             onClose={handleCloseWinning}
             productName={wonTickets[currentWonIndex].productName}
