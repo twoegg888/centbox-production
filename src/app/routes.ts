@@ -54,6 +54,10 @@ export const router = createBrowserRouter([
     Component: Admin,
   },
   {
+    path: "/admin/*",
+    Component: Admin,
+  },
+  {
     path: "/",
     Component: Home,
   },
