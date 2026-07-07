@@ -30,17 +30,17 @@ const HOME_TICKET_LINKS: Array<{
   {
     ariaLabel: "별빛 상자 상세 열기",
     ticketType: "starlight",
-    className: "left-[2px] top-[660px] h-[247px] w-[164px]",
+    className: "left-[2px] top-[660px] h-[300px] w-[164px]",
   },
   {
     ariaLabel: "미스터리 상자 상세 열기",
     ticketType: "mystery",
-    className: "left-[182px] top-[660px] h-[247px] w-[164px]",
+    className: "left-[182px] top-[660px] h-[300px] w-[164px]",
   },
   {
     ariaLabel: "전설의 상자 상세 열기",
     ticketType: "legendary",
-    className: "left-[362px] top-[660px] h-[247px] w-[118px]",
+    className: "left-[362px] top-[660px] h-[300px] w-[118px]",
   },
   {
     ariaLabel: "전설의 상자 상세 열기",
@@ -135,7 +135,7 @@ function DynamicProductCard({
   return (
     <button
       aria-label={`${product.name} 상세 열기`}
-      className={`group overflow-hidden bg-white text-left ${className || ""}`}
+      className={`group bg-white text-left ${className || ""}`}
       onClick={onClick}
       type="button"
     >
@@ -180,7 +180,7 @@ function TreasureProductRail({
   const loopProducts = products.length >= 4 ? [...products, ...products] : products;
 
   return (
-    <div className="absolute left-0 top-[660px] z-20 h-[247px] w-full overflow-hidden bg-white">
+    <div className="absolute left-0 top-[660px] z-20 h-[300px] w-full overflow-hidden bg-white pb-[20px]">
       {products.length > 0 ? (
         <div className={`flex gap-[16px] px-[2px] ${products.length >= 4 ? "animate-[homeRail_28s_linear_infinite]" : ""}`}>
           {loopProducts.map((product, index) => (
