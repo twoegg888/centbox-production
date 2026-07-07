@@ -8,6 +8,7 @@ import { getApiBase, publicAnonKey } from "../../../utils/supabase/info";
 import { buildTicketDetailPath, getTicketDisplayName, getTicketFallbackImage } from "../utils/ticketDetailMeta";
 import { TicketType } from "../types";
 import { canonicalizeBoxTicketType, toLegacyBoxTicketType } from "../utils/ticketTypes";
+import { DEFAULT_BOX_DISPLAY_NAMES, useBoxSettings } from "../utils/boxSettings";
 
 type MainPage = "home" | "result" | "exchange" | "point" | "lucky";
 type TicketTypePath = TicketType;
@@ -26,13 +27,12 @@ const HOME_BOX_IMAGE_URLS: Partial<Record<TicketTypePath, string>> = {
   mystery: "https://dbase01.cafe24.com/centbox/gold%20box.png",
   lucky: "https://dbase01.cafe24.com/centbox/pla%20box.png",
   starlight: "https://dbase01.cafe24.com/centbox/rubybox.png",
+  purdal: "",
   diamond: "https://dbase01.cafe24.com/centbox/dia%20box.png",
   gold: "https://dbase01.cafe24.com/centbox/gold%20box.png",
   platinum: "https://dbase01.cafe24.com/centbox/pla%20box.png",
   ruby: "https://dbase01.cafe24.com/centbox/rubybox.png",
 };
-
-const HOME_PRODUCT_TICKET_TYPES: TicketTypePath[] = ["legendary", "mystery", "lucky", "starlight"];
 
 const HOME_TICKET_LINKS: Array<{
   ariaLabel: string;
@@ -75,14 +75,9 @@ const HOME_TICKET_LINKS: Array<{
     className: "left-[244px] top-[1393px] h-[275px] w-[206px]",
   },
   {
-    ariaLabel: "뷰티 티켓 상세 열기",
-    ticketType: "beauty",
+    ariaLabel: "퍼달이의 주머니 상세 열기",
+    ticketType: "purdal",
     className: "left-[29px] top-[1735px] h-[275px] w-[206px]",
-  },
-  {
-    ariaLabel: "미트 티켓 상세 열기",
-    ticketType: "meat",
-    className: "left-[244px] top-[1735px] h-[275px] w-[206px]",
   },
 ];
 
@@ -134,13 +129,17 @@ function DynamicProductCard({
   product,
   className,
   compact = false,
+  displayNames = DEFAULT_BOX_DISPLAY_NAMES,
   onClick,
 }: {
   product: HomeProduct;
   className?: string;
   compact?: boolean;
+  displayNames?: Partial<Record<TicketTypePath, string>>;
   onClick: () => void;
 }) {
+  const displayName = displayNames[product.ticketType] || getTicketDisplayName(product.ticketType);
+
   return (
     <button
       aria-label={`${product.name} 상세 열기`}
@@ -165,10 +164,10 @@ function DynamicProductCard({
           {product.name}
         </p>
         <p className="mt-[4px] truncate font-['Noto_Sans:Regular','Noto_Sans_KR:Regular',sans-serif] text-[12px] text-[#606060]">
-          {product.brand || getTicketDisplayName(product.ticketType)}
+          {product.brand || displayName}
         </p>
         <p className="mt-[8px] truncate font-['Noto_Sans:SemiBold','Noto_Sans_KR:SemiBold',sans-serif] text-[18px] text-[#606060]">
-          {typeof product.points === "number" ? `${product.points.toLocaleString()}P` : getTicketDisplayName(product.ticketType)}
+          {typeof product.points === "number" ? `${product.points.toLocaleString()}P` : displayName}
         </p>
       </div>
     </button>
@@ -177,9 +176,11 @@ function DynamicProductCard({
 
 function TreasureProductRail({
   products,
+  displayNames,
   onOpenProduct,
 }: {
   products: HomeProduct[];
+  displayNames: Partial<Record<TicketTypePath, string>>;
   onOpenProduct: (productName: string | undefined, fallbackTicketType: TicketTypePath) => void;
 }) {
   const loopProducts = products.length >= 4 ? [...products, ...products] : products;
@@ -192,6 +193,7 @@ function TreasureProductRail({
             <DynamicProductCard
               key={`${product.ticketType}-${product.id}-${index}`}
               product={product}
+              displayNames={displayNames}
               className="w-[164px] shrink-0"
               onClick={() => onOpenProduct(product.name, product.ticketType)}
             />
@@ -202,14 +204,13 @@ function TreasureProductRail({
   );
 }
 
-function BoxImageFallbackOverlays() {
+function BoxImageFallbackOverlays({ displayNames }: { displayNames: Partial<Record<TicketTypePath, string>> }) {
   const slots: Array<{ ticketType: TicketTypePath; className: string }> = [
     { ticketType: "legendary", className: "left-[29px] top-[1051px]" },
     { ticketType: "mystery", className: "left-[244px] top-[1051px]" },
     { ticketType: "lucky", className: "left-[29px] top-[1393px]" },
     { ticketType: "starlight", className: "left-[244px] top-[1393px]" },
-    { ticketType: "beauty", className: "left-[29px] top-[1735px]" },
-    { ticketType: "meat", className: "left-[244px] top-[1735px]" },
+    { ticketType: "purdal", className: "left-[29px] top-[1735px]" },
   ];
 
   return (
@@ -217,7 +218,7 @@ function BoxImageFallbackOverlays() {
       {slots.map((slot) => (
         <div className={`absolute z-20 h-[206px] w-[206px] overflow-hidden bg-[#f2f2f2] ${slot.className}`} key={slot.className}>
           <img
-            alt={getTicketDisplayName(slot.ticketType)}
+            alt={displayNames[slot.ticketType] || getTicketDisplayName(slot.ticketType)}
             className="h-full w-full object-cover"
             loading="lazy"
             src={getHomeFallbackImage(slot.ticketType)}
@@ -230,9 +231,11 @@ function BoxImageFallbackOverlays() {
 
 function FeaturedHighValueProducts({
   products,
+  displayNames,
   onOpenProduct,
 }: {
   products: HomeProduct[];
+  displayNames: Partial<Record<TicketTypePath, string>>;
   onOpenProduct: (productName: string | undefined, fallbackTicketType: TicketTypePath) => void;
 }) {
   const slots = [
@@ -259,6 +262,7 @@ function FeaturedHighValueProducts({
             <DynamicProductCard
               key={`${product.ticketType}-${product.id}-${index}`}
               product={product}
+              displayNames={displayNames}
               compact
               className={`absolute z-20 w-[206px] ${slots[index]}`}
               onClick={() => onOpenProduct(product.name, product.ticketType)}
@@ -278,6 +282,7 @@ function FeaturedHighValueProducts({
 
 export default function Home() {
   const navigate = useNavigate();
+  const { activeBoxSettings, displayNames } = useBoxSettings();
   const [homeProducts, setHomeProducts] = useState<HomeProduct[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<HomeProduct[]>([]);
 
@@ -306,7 +311,8 @@ export default function Home() {
     const fetchFeaturedProducts = async () => {
       try {
         const productGroups = await Promise.all(
-          HOME_PRODUCT_TICKET_TYPES.map(async (ticketType) => {
+          activeBoxSettings.map(async (setting) => {
+            const ticketType = setting.ticketType;
             const apiTicketType = toLegacyBoxTicketType(ticketType);
             const response = await fetch(`${getApiBase()}/products/${apiTicketType}`, {
               headers: {
@@ -339,7 +345,7 @@ export default function Home() {
     };
 
     void fetchFeaturedProducts();
-  }, []);
+  }, [activeBoxSettings]);
 
   const handleNavigate = (page: MainPage) => {
     const pathByPage: Record<MainPage, string> = {
@@ -371,15 +377,17 @@ export default function Home() {
 
         <FigmaHome />
         <SharedHeader onCategoryClick={handleCategoryClick} />
-        <BoxImageFallbackOverlays />
+        <BoxImageFallbackOverlays displayNames={displayNames} />
         <TreasureProductRail
           products={homeProducts}
+          displayNames={displayNames}
           onOpenProduct={(productName, fallbackTicketType) =>
             navigate(buildTicketDetailPath(productName || "", fallbackTicketType))
           }
         />
         <FeaturedHighValueProducts
           products={featuredProducts}
+          displayNames={displayNames}
           onOpenProduct={(productName, fallbackTicketType) =>
             navigate(buildTicketDetailPath(productName || "", fallbackTicketType))
           }

@@ -7,6 +7,7 @@ export type TicketType =
   | 'mystery'
   | 'lucky'
   | 'starlight'
+  | 'purdal'
   | 'platinum'
   | 'diamond'
   | 'gold'
@@ -18,6 +19,7 @@ export const TICKET_GRADES = {
   mystery: { name: '미스터리', color: '#FFD700', points: 500, order: 2 },
   lucky: { name: '행운', color: '#E5E4E2', points: 3000, order: 3 },
   starlight: { name: '별빛', color: '#FF0000', points: 100, order: 4 },
+  purdal: { name: '퍼달', color: '#111827', points: 100, order: 5 },
   ruby: { name: '루비', color: '#FF0000', points: 100, order: 1 },
   gold: { name: '골드', color: '#FFD700', points: 500, order: 2 },
   diamond: { name: '다이아', color: '#B9F2FF', points: 1000, order: 3 },

@@ -1,15 +1,11 @@
 import { useState, useEffect } from "react";
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 import { canonicalizeBoxTicketType } from "../utils/ticketTypes";
+import { BoxSetting, DEFAULT_BOX_DISPLAY_NAMES, DEFAULT_BOX_SETTINGS } from "../utils/boxSettings";
 
-type TicketType = 'legendary' | 'mystery' | 'lucky' | 'starlight';
+type TicketType = BoxSetting['ticketType'];
 
-const TICKET_TYPE_NAMES: Record<TicketType, string> = {
-  legendary: '전설의 상자',
-  mystery: '미스터리 상자',
-  lucky: '행운의 상자',
-  starlight: '별빛 상자',
-};
+const TICKET_TYPE_NAMES: Record<TicketType, string> = DEFAULT_BOX_DISPLAY_NAMES;
 
 interface Product {
   id: string;
@@ -27,9 +23,17 @@ function normalizeProduct(product: Product): Product {
   };
 }
 
-export default function HomeProductsTab({ isAuthenticated }: { isAuthenticated?: boolean }) {
+export default function HomeProductsTab({
+  isAuthenticated,
+  boxSettings = DEFAULT_BOX_SETTINGS,
+  displayNames = DEFAULT_BOX_DISPLAY_NAMES,
+}: {
+  isAuthenticated?: boolean;
+  boxSettings?: BoxSetting[];
+  displayNames?: Record<TicketType, string>;
+}) {
   const [homeProducts, setHomeProducts] = useState<Product[]>([]);
-  const [selectedTicketType, setSelectedTicketType] = useState<TicketType>('legendary');
+  const [selectedTicketType, setSelectedTicketType] = useState<TicketType>(boxSettings[0]?.ticketType || 'legendary');
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -103,6 +107,12 @@ export default function HomeProductsTab({ isAuthenticated }: { isAuthenticated?:
       loadTicketProducts();
     }
   }, [isAuthenticated, selectedTicketType]);
+
+  useEffect(() => {
+    if (!boxSettings.some((setting) => setting.ticketType === selectedTicketType)) {
+      setSelectedTicketType(boxSettings[0]?.ticketType || 'legendary');
+    }
+  }, [boxSettings, selectedTicketType]);
 
   // 상품 추가
   const handleAddProduct = async (productId: string) => {
@@ -212,7 +222,7 @@ export default function HomeProductsTab({ isAuthenticated }: { isAuthenticated?:
                   />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-blue-600 font-semibold mb-1">
-                      {TICKET_TYPE_NAMES[product.ticketType as TicketType] || product.ticketType}
+                      {displayNames[product.ticketType as TicketType] || product.ticketType}
                     </div>
                     <div className="font-semibold text-sm truncate">{product.name}</div>
                     <div className="text-xs text-gray-600">{product.brand}</div>
@@ -244,9 +254,9 @@ export default function HomeProductsTab({ isAuthenticated }: { isAuthenticated?:
             onChange={(e) => setSelectedTicketType(e.target.value as TicketType)}
             className="w-full md:w-64 px-3 py-2 border rounded"
           >
-            {Object.entries(TICKET_TYPE_NAMES).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
+            {boxSettings.map((setting) => (
+              <option key={setting.ticketType} value={setting.ticketType}>
+                {displayNames[setting.ticketType] || setting.displayName}
               </option>
             ))}
           </select>
@@ -255,7 +265,7 @@ export default function HomeProductsTab({ isAuthenticated }: { isAuthenticated?:
         {/* 상품 목록 */}
         <div>
           <h3 className="text-sm font-medium mb-3">
-            {TICKET_TYPE_NAMES[selectedTicketType]} 상품 ({availableProducts.length}개)
+            {displayNames[selectedTicketType] || TICKET_TYPE_NAMES[selectedTicketType]} 상품 ({availableProducts.length}개)
           </h3>
           {availableProducts.length === 0 ? (
             <p className="text-gray-500">상품이 없습니다.</p>

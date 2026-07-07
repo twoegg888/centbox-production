@@ -5,16 +5,12 @@ import ShippingTab from "../components/ShippingTab";
 import HomeProductsTab from "../components/HomeProductsTab";
 import * as XLSX from 'xlsx';
 import { canonicalizeBoxTicketType } from "../utils/ticketTypes";
+import { BoxSetting, DEFAULT_BOX_DISPLAY_NAMES, DEFAULT_BOX_SETTINGS, useBoxSettings } from "../utils/boxSettings";
 
-type Tab = 'dashboard' | 'users' | 'products' | 'luckydraws' | 'shipping' | 'homeproducts';
-type TicketType = 'legendary' | 'mystery' | 'lucky' | 'starlight';
+type Tab = 'dashboard' | 'users' | 'products' | 'luckydraws' | 'shipping' | 'homeproducts' | 'boxsettings';
+type TicketType = BoxSetting['ticketType'];
 
-const TICKET_TYPE_NAMES: Record<TicketType, string> = {
-  legendary: '전설의 상자',
-  mystery: '미스터리 상자',
-  lucky: '행운의 상자',
-  starlight: '별빛 상자',
-};
+const TICKET_TYPE_NAMES: Record<TicketType, string> = DEFAULT_BOX_DISPLAY_NAMES;
 
 const IMAGE_FALLBACK_SRC = 'https://via.placeholder.com/160?text=No+Image';
 
@@ -67,6 +63,7 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+  const { activeBoxSettings, displayNames } = useBoxSettings();
   
   // 🔥 관리자 인증 체크
   useEffect(() => {
@@ -218,6 +215,16 @@ export default function Admin() {
             >
               🏠 홈 메인 상품
             </button>
+            <button
+              onClick={() => setActiveTab('boxsettings')}
+              className={`py-[16px] px-[4px] border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[15px] transition-all ${
+                activeTab === 'boxsettings'
+                  ? 'border-[#111827] text-[#111827]'
+                  : 'border-transparent text-[#6b7280] hover:text-[#111827] hover:border-[#d1d5db]'
+              }`}
+            >
+              🧰 상자 설정
+            </button>
           </nav>
         </div>
       </div>
@@ -226,10 +233,11 @@ export default function Admin() {
       <div className="max-w-[1400px] mx-auto px-6 py-[32px]">
         {activeTab === 'dashboard' && <DashboardTab isAuthenticated={isAuthenticated} />}
         {activeTab === 'users' && <UsersTab isAuthenticated={isAuthenticated} />}
-        {activeTab === 'products' && <ProductsTab isAuthenticated={isAuthenticated} />}
+        {activeTab === 'products' && <ProductsTab isAuthenticated={isAuthenticated} boxSettings={activeBoxSettings} displayNames={displayNames} />}
         {activeTab === 'luckydraws' && <LuckyDrawsTab isAuthenticated={isAuthenticated} />}
         {activeTab === 'shipping' && <ShippingTab isAuthenticated={isAuthenticated} />}
-        {activeTab === 'homeproducts' && <HomeProductsTab isAuthenticated={isAuthenticated} />}
+        {activeTab === 'homeproducts' && <HomeProductsTab isAuthenticated={isAuthenticated} boxSettings={activeBoxSettings} displayNames={displayNames} />}
+        {activeTab === 'boxsettings' && <BoxSettingsTab isAuthenticated={isAuthenticated} />}
       </div>
     </div>
   );
@@ -574,10 +582,181 @@ function UsersTab({ isAuthenticated }: { isAuthenticated: boolean }) {
 }
 
 // ============================================
+// 상자 설정 탭
+// ============================================
+function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
+  const [settings, setSettings] = useState<BoxSetting[]>(DEFAULT_BOX_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSettings();
+    }
+  }, [isAuthenticated]);
+
+  const fetchSettings = async () => {
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) {
+        alert('❌ 인증 정보가 없습니다. 다시 로그인해주세요.');
+        return;
+      }
+
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/box-settings`,
+        { headers }
+      );
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const mergedSettings = DEFAULT_BOX_SETTINGS.map((defaultSetting) => {
+          const savedSetting = (data.settings || []).find((setting: BoxSetting) => setting.ticketType === defaultSetting.ticketType);
+          return {
+            ...defaultSetting,
+            ...savedSetting,
+            ticketType: defaultSetting.ticketType,
+          };
+        }).sort((first, second) => first.sortOrder - second.sortOrder);
+
+        setSettings(mergedSettings);
+      } else {
+        alert(`❌ 상자 설정을 불러오지 못했습니다: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`❌ 에러: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangeSetting = (ticketType: TicketType, updates: Partial<BoxSetting>) => {
+    setSettings((currentSettings) =>
+      currentSettings.map((setting) =>
+        setting.ticketType === ticketType
+          ? {
+              ...setting,
+              ...updates,
+            }
+          : setting
+      )
+    );
+  };
+
+  const handleSave = async () => {
+    const invalidSetting = settings.find((setting) => !setting.displayName.trim());
+    if (invalidSetting) {
+      alert('❌ 상자 이름은 비워둘 수 없습니다.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const headers = getAuthHeaders();
+      if (!headers) {
+        alert('❌ 인증 정보가 없습니다. 다시 로그인해주세요.');
+        return;
+      }
+
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/box-settings`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          body: JSON.stringify({ settings }),
+        }
+      );
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        alert('✅ 상자 설정이 저장되었습니다. 프론트 화면에는 새로고침 후 반영됩니다.');
+        setSettings(data.settings || settings);
+      } else {
+        alert(`❌ 저장 실패: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`❌ 에러: ${error}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-12">로딩 중...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">상자 설정</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            프론트에 표시되는 상자 이름을 관리합니다. 코드 키는 데이터 연결용이라 변경할 수 없습니다.
+          </p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 disabled:opacity-50"
+        >
+          {saving ? '저장 중...' : '저장'}
+        </button>
+      </div>
+
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="grid grid-cols-[160px_1fr_120px_120px] gap-3 border-b bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">
+          <div>코드 키</div>
+          <div>프론트 표시 이름</div>
+          <div>노출</div>
+          <div>순서</div>
+        </div>
+        {settings.map((setting) => (
+          <div key={setting.ticketType} className="grid grid-cols-[160px_1fr_120px_120px] gap-3 border-b px-4 py-3 last:border-b-0">
+            <div className="flex items-center text-sm font-mono text-gray-700">{setting.ticketType}</div>
+            <input
+              type="text"
+              value={setting.displayName}
+              onChange={(e) => handleChangeSetting(setting.ticketType, { displayName: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={setting.isActive}
+                onChange={(e) => handleChangeSetting(setting.ticketType, { isActive: e.target.checked })}
+              />
+              사용
+            </label>
+            <input
+              type="number"
+              value={setting.sortOrder}
+              onChange={(e) => handleChangeSetting(setting.ticketType, { sortOrder: Number(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              min="1"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // 상품 관리 탭
 // ============================================
-function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
-  const [selectedTicketType, setSelectedTicketType] = useState<TicketType>('legendary');
+function ProductsTab({
+  isAuthenticated,
+  boxSettings,
+  displayNames,
+}: {
+  isAuthenticated: boolean;
+  boxSettings: BoxSetting[];
+  displayNames: Record<TicketType, string>;
+}) {
+  const [selectedTicketType, setSelectedTicketType] = useState<TicketType>(boxSettings[0]?.ticketType || 'legendary');
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -589,6 +768,12 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
       fetchProducts();
     }
   }, [isAuthenticated, selectedTicketType]);
+
+  useEffect(() => {
+    if (!boxSettings.some((setting) => setting.ticketType === selectedTicketType)) {
+      setSelectedTicketType(boxSettings[0]?.ticketType || 'legendary');
+    }
+  }, [boxSettings, selectedTicketType]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -683,6 +868,15 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         '재고': 100,
         '이미지URL': 'https://images.unsplash.com/photo-1542838132-92c53300491e',
       },
+      {
+        '박스타입': 'purdal',
+        '상품명': '퍼달이 랜덤 굿즈',
+        '브랜드': 'Centbox',
+        '포인트': 9900,
+        '가중치': 10,
+        '재고': 100,
+        '이미지URL': 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f',
+      },
     ];
 
     const ws = XLSX.utils.json_to_sheet(templateData);
@@ -752,7 +946,7 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
 
         // 티켓 타입 검증
         const ticketType = canonicalizeBoxTicketType(String(row['박스타입']).toLowerCase());
-        const validTicketTypes = ['legendary', 'mystery', 'lucky', 'starlight'];
+        const validTicketTypes = boxSettings.map((setting) => setting.ticketType);
         if (!validTicketTypes.includes(ticketType)) {
           errors.push(`${rowNum}행: 잘못된 박스타입 (${row['박스타입']}). 가능한 값: ${validTicketTypes.join(', ')}`);
           return;
@@ -914,23 +1108,23 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
           <li>검증 후 일괄 등록됩니다.</li>
         </ol>
         <p className="text-xs text-blue-600 mt-2">
-          ⚠️ 박스타입: legendary, mystery, lucky, starlight 중 하나여야 합니다. 기존 diamond, gold, platinum, ruby 값도 자동 변환됩니다.
+          ⚠️ 박스타입: {boxSettings.map((setting) => setting.ticketType).join(', ')} 중 하나여야 합니다. 기존 diamond, gold, platinum, ruby 값도 자동 변환됩니다.
         </p>
       </div>
 
       {/* 박스 타입 선택 */}
       <div className="flex gap-2 flex-wrap">
-        {(Object.keys(TICKET_TYPE_NAMES) as TicketType[]).map((type) => (
+        {boxSettings.map((setting) => (
           <button
-            key={type}
-            onClick={() => setSelectedTicketType(type)}
+            key={setting.ticketType}
+            onClick={() => setSelectedTicketType(setting.ticketType)}
             className={`px-4 py-2 rounded ${
-              selectedTicketType === type
+              selectedTicketType === setting.ticketType
                 ? 'bg-black text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            {TICKET_TYPE_NAMES[type]}
+            {displayNames[setting.ticketType] || setting.displayName}
           </button>
         ))}
       </div>
@@ -943,7 +1137,7 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
           <div className="text-6xl mb-4">📦</div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">등록된 상품이 없습니다</h3>
           <p className="text-sm text-gray-500 mb-6">
-            {TICKET_TYPE_NAMES[selectedTicketType]}에 당첨 가능한 상품을 추가해주세요.
+            {displayNames[selectedTicketType] || TICKET_TYPE_NAMES[selectedTicketType]}에 당첨 가능한 상품을 추가해주세요.
           </p>
           <button
             onClick={() => setShowAddModal(true)}
@@ -1003,6 +1197,7 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
       {(showAddModal || editingProduct) && (
         <ProductModal
           ticketType={selectedTicketType}
+          displayNames={displayNames}
           product={editingProduct}
           onClose={() => {
             setShowAddModal(false);
@@ -1019,11 +1214,13 @@ function ProductsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
 function ProductModal({
   ticketType,
   product,
+  displayNames,
   onClose,
   onSuccess,
 }: {
   ticketType: TicketType;
   product?: any;
+  displayNames: Record<TicketType, string>;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -1109,7 +1306,7 @@ function ProductModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 my-8">
         <h3 className="text-lg font-bold mb-4">
-          {product ? '상품 수정' : '상품 추가'} - {TICKET_TYPE_NAMES[ticketType]}
+          {product ? '상품 수정' : '상품 추가'} - {displayNames[ticketType] || TICKET_TYPE_NAMES[ticketType]}
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">

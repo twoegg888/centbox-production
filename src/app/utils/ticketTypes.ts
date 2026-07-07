@@ -1,4 +1,4 @@
-export const CANONICAL_BOX_TICKET_TYPES = ["legendary", "mystery", "lucky", "starlight"] as const;
+export const CANONICAL_BOX_TICKET_TYPES = ["legendary", "mystery", "lucky", "starlight", "purdal"] as const;
 export const LEGACY_BOX_TICKET_TYPES = ["diamond", "gold", "platinum", "ruby"] as const;
 
 export type CanonicalBoxTicketType = (typeof CANONICAL_BOX_TICKET_TYPES)[number];
@@ -24,6 +24,7 @@ export const BOX_TICKET_DISPLAY_NAMES: Record<CanonicalBoxTicketType, string> = 
   mystery: "미스터리 상자",
   lucky: "행운의 상자",
   starlight: "별빛 상자",
+  purdal: "퍼달이의 주머니",
 };
 
 export function isLegacyBoxTicketType(value: unknown): value is LegacyBoxTicketType {

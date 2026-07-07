@@ -49,6 +49,7 @@ const TICKET_PRICE_MAP = {
   mystery: 14900,
   lucky: 99000,
   starlight: 9900,
+  purdal: 9900,
   ruby: 9900,
   jewelry: 19900,
   meat: 39900,
@@ -74,6 +75,14 @@ const LEGACY_BOX_TICKET_BY_CANONICAL: Record<string, TicketType> = {
   lucky: "platinum",
   starlight: "ruby",
 };
+
+const DEFAULT_BOX_SETTINGS = [
+  { ticketType: "legendary", displayName: "전설의 상자", isActive: true, sortOrder: 1 },
+  { ticketType: "mystery", displayName: "미스터리 상자", isActive: true, sortOrder: 2 },
+  { ticketType: "lucky", displayName: "행운의 상자", isActive: true, sortOrder: 3 },
+  { ticketType: "starlight", displayName: "별빛 상자", isActive: true, sortOrder: 4 },
+  { ticketType: "purdal", displayName: "퍼달이의 주머니", isActive: true, sortOrder: 5 },
+];
 
 function normalizeProductKey(value: unknown): string {
   const rawValue = String(value || "");
@@ -119,6 +128,26 @@ function normalizeProductForResponse(product: any, ticketType: string) {
     ...product,
     ticketType,
   };
+}
+
+function getMergedBoxSettings(savedSettings: any[] = []) {
+  return DEFAULT_BOX_SETTINGS.map((defaultSetting) => {
+    const savedSetting = savedSettings.find((setting: any) => setting.ticketType === defaultSetting.ticketType);
+    return {
+      ...defaultSetting,
+      ...savedSetting,
+      ticketType: defaultSetting.ticketType,
+      displayName: String(savedSetting?.displayName || defaultSetting.displayName).trim() || defaultSetting.displayName,
+      isActive: savedSetting?.isActive !== false,
+      sortOrder: Number(savedSetting?.sortOrder || defaultSetting.sortOrder),
+    };
+  }).sort((first, second) => first.sortOrder - second.sortOrder);
+}
+
+async function loadBoxSettings() {
+  const settingsStr = await kv.get("box-settings");
+  const savedSettings = settingsStr ? JSON.parse(settingsStr) : [];
+  return getMergedBoxSettings(savedSettings);
 }
 
 async function findProductMapping(productNameOrType: unknown): Promise<{
@@ -3076,6 +3105,58 @@ app.get("/make-server-53dba95c/products/detail/:productNameOrType", async (c) =>
   }
 });
 
+app.get("/make-server-53dba95c/box-settings", async (c) => {
+  try {
+    const settings = await loadBoxSettings();
+    return c.json({ success: true, settings });
+  } catch (error) {
+    console.error("Get box settings error:", error);
+    return c.json({ error: "Failed to get box settings", details: String(error) }, 500);
+  }
+});
+
+app.get("/make-server-53dba95c/admin/box-settings", async (c) => {
+  const adminSecret = getAdminSecretFromHeaders(c);
+  if (!(await validateAdminAuth(adminSecret))) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const settings = await loadBoxSettings();
+    return c.json({ success: true, settings });
+  } catch (error) {
+    console.error("Get admin box settings error:", error);
+    return c.json({ error: "Failed to get box settings", details: String(error) }, 500);
+  }
+});
+
+app.put("/make-server-53dba95c/admin/box-settings", async (c) => {
+  const adminSecret = getAdminSecretFromHeaders(c);
+  if (!(await validateAdminAuth(adminSecret))) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const { settings } = await c.req.json();
+    if (!Array.isArray(settings)) {
+      return c.json({ error: "Invalid settings payload" }, 400);
+    }
+
+    const cleanSettings = getMergedBoxSettings(settings).map((setting) => ({
+      ticketType: setting.ticketType,
+      displayName: setting.displayName,
+      isActive: setting.isActive,
+      sortOrder: setting.sortOrder,
+    }));
+
+    await kv.set("box-settings", JSON.stringify(cleanSettings));
+    return c.json({ success: true, settings: cleanSettings });
+  } catch (error) {
+    console.error("Update box settings error:", error);
+    return c.json({ error: "Failed to update box settings", details: String(error) }, 500);
+  }
+});
+
 app.get("/make-server-53dba95c/products/:ticketType", async (c) => {
   try {
     const ticketType = canonicalizeTicketType(c.req.param("ticketType"));
@@ -3112,7 +3193,7 @@ app.get("/make-server-53dba95c/admin/products/all", async (c) => {
   }
 
   try {
-    const ticketTypes = ['legendary', 'mystery', 'lucky', 'starlight', 'jewelry', 'beauty', 'meat'] as TicketType[];
+    const ticketTypes = ['legendary', 'mystery', 'lucky', 'starlight', 'purdal', 'jewelry', 'beauty', 'meat'] as TicketType[];
     const allProducts: any = {};
     
     for (const ticketType of ticketTypes) {

@@ -6,7 +6,8 @@ import { DISABLE_LOGIN_GUARDS } from "../utils/authBypass";
 import { getApiBase, publicAnonKey } from "../../../utils/supabase/info";
 import { TicketType } from "../types";
 import { resolveTicketDetailMeta, TicketDetailMeta } from "../utils/ticketDetailMeta";
-import { canonicalizeBoxTicketType } from "../utils/ticketTypes";
+import { canonicalizeBoxTicketType, isCanonicalBoxTicketType, isLegacyBoxTicketType } from "../utils/ticketTypes";
+import { useBoxSettings } from "../utils/boxSettings";
 
 type ProductDetailResponse = {
   success: boolean;
@@ -23,6 +24,7 @@ export default function TicketDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoggedIn } = useApp();
+  const { displayNames } = useBoxSettings();
   const { productNameOrType } = useParams<{ productNameOrType: string }>();
   const queryProductName = useMemo(() => new URLSearchParams(location.search).get("productName"), [location.search]);
   const productNameParam = queryProductName || productNameOrType || "";
@@ -40,6 +42,21 @@ export default function TicketDetail() {
       setIsLoadingDetail(true);
 
       try {
+        const normalizedParam = decodeURIComponent(productNameParam).toLowerCase();
+        const canonicalParam = canonicalizeBoxTicketType(normalizedParam);
+        if (isCanonicalBoxTicketType(canonicalParam) || isLegacyBoxTicketType(normalizedParam)) {
+          const boxMeta = resolveTicketDetailMeta(String(canonicalParam));
+          setDetailMeta(
+            boxMeta
+              ? {
+                  ...boxMeta,
+                  ticketName: displayNames[boxMeta.ticketType] || boxMeta.ticketName,
+                }
+              : null
+          );
+          return;
+        }
+
         const response = await fetch(`${getApiBase()}/products/detail/${encodeURIComponent(productNameParam)}`, {
           headers: {
             Authorization: `Bearer ${publicAnonKey}`,
@@ -58,7 +75,14 @@ export default function TicketDetail() {
           }
 
           const fallbackMeta = resolveTicketDetailMeta(data.ticketType);
-          setDetailMeta(fallbackMeta);
+          setDetailMeta(
+            fallbackMeta
+              ? {
+                  ...fallbackMeta,
+                  ticketName: displayNames[fallbackMeta.ticketType] || fallbackMeta.ticketName,
+                }
+              : null
+          );
           return;
         }
       } catch (error) {
@@ -67,7 +91,15 @@ export default function TicketDetail() {
         setIsLoadingDetail(false);
       }
 
-      setDetailMeta(resolveTicketDetailMeta(productNameParam));
+      const fallbackMeta = resolveTicketDetailMeta(productNameParam);
+      setDetailMeta(
+        fallbackMeta
+          ? {
+              ...fallbackMeta,
+              ticketName: displayNames[fallbackMeta.ticketType] || fallbackMeta.ticketName,
+            }
+          : null
+      );
     };
 
     if (productNameParam) {
@@ -77,7 +109,7 @@ export default function TicketDetail() {
 
     setDetailMeta(null);
     setIsLoadingDetail(false);
-  }, [productNameParam]);
+  }, [productNameParam, displayNames]);
 
   if (!DISABLE_LOGIN_GUARDS && !isLoggedIn) {
     return (

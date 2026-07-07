@@ -4,6 +4,7 @@ export const TICKET_PRICES = {
   mystery: 14900,
   lucky: 99000,
   starlight: 9900,
+  purdal: 9900,
   ruby: 9900,
   jewelry: 19900,
   meat: 39900,

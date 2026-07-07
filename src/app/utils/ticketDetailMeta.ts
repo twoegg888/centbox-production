@@ -24,6 +24,7 @@ export const TICKET_DETAIL_META: Record<TicketType, TicketDetailMeta> = {
   mystery: { ticketName: "미스터리 상자", mainImage: imgGold, ticketType: "mystery" },
   lucky: { ticketName: "행운의 상자", mainImage: imgPlatinum, ticketType: "lucky" },
   starlight: { ticketName: "별빛 상자", mainImage: imgRuby, ticketType: "starlight" },
+  purdal: { ticketName: "퍼달이의 주머니", mainImage: imgJewelry, ticketType: "purdal" },
   ruby: { ticketName: "별빛 상자", mainImage: imgRuby, ticketType: "starlight" },
   gold: { ticketName: "미스터리 상자", mainImage: imgGold, ticketType: "mystery" },
   diamond: { ticketName: "전설의 상자", mainImage: imgDiamond, ticketType: "legendary" },
