@@ -5,7 +5,6 @@ import { getApiBase, publicAnonKey } from "../../../utils/supabase/info";
 // 공통 헤더 높이: 배너(52) + 헤더바(60) + 카테고리바(50) = 162px
 export const HEADER_HEIGHT = 162;
 const HEADER_BANNER_HEIGHT = 52;
-const DISMISSED_BANNER_KEY = "centbox_header_banner_dismissed";
 const BANNER_PRODUCT_MIN_POINTS = 100000;
 const BANNER_TICKET_TYPES = ["legendary", "mystery", "lucky", "starlight", "purdal"] as const;
 
@@ -34,9 +33,7 @@ function formatBannerMessage(productName: string) {
 }
 
 export default function SharedHeader({ onCategoryClick, staticLayout = false }: Props) {
-  const [isBannerDismissed, setIsBannerDismissed] = useState(
-    () => !staticLayout && sessionStorage.getItem(DISMISSED_BANNER_KEY) === "true"
-  );
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const [bannerProducts, setBannerProducts] = useState<BannerProduct[]>([]);
   const [bannerIndex, setBannerIndex] = useState(0);
   const shouldShowBanner = staticLayout || !isBannerDismissed;
@@ -93,7 +90,6 @@ export default function SharedHeader({ onCategoryClick, staticLayout = false }: 
   }, [bannerProducts, bannerIndex]);
 
   const handleDismissBanner = () => {
-    sessionStorage.setItem(DISMISSED_BANNER_KEY, "true");
     setIsBannerDismissed(true);
   };
 
