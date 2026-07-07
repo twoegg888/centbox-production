@@ -6,9 +6,30 @@ import imgKakao from "figma:asset/152a75c45e952c474894abadfecac91956cd1209.png";
 import SharedHeader from "../../figma-make/components/SharedHeader";
 import SharedNavBar from "../../figma-make/components/SharedNavBar";
 import { getSupportPath, SupportFooterOverlays } from "../components/SupportNavigation";
-const BRAND_LOGO_URL = 'https://dbase01.cafe24.com/box_logo.png';
 
 type MainPage = "home" | "result" | "exchange" | "point" | "lucky";
+
+function HeaderBrandLogo({
+  className,
+  scale,
+}: {
+  className: string;
+  scale: number;
+}) {
+  return (
+    <div className={`relative overflow-hidden ${className}`} aria-label="CENTBOX">
+      <div
+        className="pointer-events-none absolute left-0 top-0 h-[162px] w-[480px]"
+        style={{
+          transform: `translate(${-26 * scale}px, ${-69 * scale}px) scale(${scale})`,
+          transformOrigin: 'top left',
+        }}
+      >
+        <SharedHeader />
+      </div>
+    </div>
+  );
+}
 
 export default function Login() {
   const navigate = useNavigate();
@@ -68,11 +89,7 @@ export default function Login() {
         <SharedHeader onCategoryClick={(label) => navigate(getSupportPath(label))} />
 
         <main className="absolute left-0 right-0 top-[220px] flex flex-col items-center px-[28px]">
-          <img
-            src={BRAND_LOGO_URL}
-            alt="CENTBOX"
-            className="mb-[18px] h-[66px] w-[240px] object-contain"
-          />
+          <HeaderBrandLogo className="mb-[18px] h-[72px] w-[246px]" scale={2.76} />
           <p className="mb-[62px] font-['Pretendard',sans-serif] text-[14px] font-normal text-[#707070]">
             로그인하고 다양한 혜택을 만나보세요!
           </p>
@@ -104,7 +121,7 @@ export default function Login() {
 
         <footer className="absolute left-0 right-0 top-[760px] h-[490px] bg-white shadow-[0px_-4px_4px_-4px_rgba(0,0,0,0.25)]">
           <div className="px-[29px] pt-[31px]">
-            <img src={BRAND_LOGO_URL} alt="CENTBOX" className="mb-[16px] h-[34px] w-[113px] object-contain object-left" />
+            <HeaderBrandLogo className="mb-[16px] h-[36px] w-[122px]" scale={1.37} />
             <div className="space-y-[7px] font-['Noto_Sans_KR',sans-serif] text-[12px] leading-none text-[#9e9e9e]">
               <p>고객센터 : centbox_cs@gmail.com</p>
               <p>운영시간 : 13:00 ~ 17:00 / 공휴일 휴무</p>
@@ -139,7 +156,7 @@ export default function Login() {
               {label}
             </p>
           ))}
-          <SupportFooterOverlays firstRowTop={947} secondRowTop={991} />
+          <SupportFooterOverlays firstRowTop={187} secondRowTop={231} />
 
           <div className="absolute left-0 right-0 top-[332px] h-[158px] bg-white px-[29px] pt-[30px]">
             <div className="space-y-[9px] font-['Pretendard',sans-serif] text-[12px] leading-none text-[#959595]">
