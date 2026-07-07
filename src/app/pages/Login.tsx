@@ -5,7 +5,7 @@ import { kakaoRestApiKey } from '../../../utils/supabase/info';
 import imgKakao from "figma:asset/152a75c45e952c474894abadfecac91956cd1209.png";
 import SharedHeader from "../../figma-make/components/SharedHeader";
 import SharedNavBar from "../../figma-make/components/SharedNavBar";
-import { getSupportPath, SupportFooterOverlays } from "../components/SupportNavigation";
+import { FooterSupportLinks, getSupportPath } from "../components/SupportNavigation";
 
 type MainPage = "home" | "result" | "exchange" | "point" | "lucky";
 
@@ -128,35 +128,8 @@ export default function Login() {
               <p>{`계좌번호 : `}</p>
               <p>반송주소 : 경상남도 김해시 대청로104번길 27-31 1층</p>
             </div>
-            <p className="mt-[38px] font-['Noto_Sans_KR',sans-serif] text-[12px] font-medium text-[#3e3e3e]">
-              고객지원
-            </p>
+            <FooterSupportLinks className="mt-[38px]" />
           </div>
-
-          <div className="absolute left-[30px] top-[187px] h-[34px] w-[120px] border border-[#ebebeb]" />
-          <div className="absolute left-[180px] top-[187px] h-[34px] w-[120px] border border-[#ebebeb]" />
-          <div className="absolute left-[330px] top-[187px] h-[34px] w-[120px] border border-[#ebebeb]" />
-          <div className="absolute left-[30px] top-[231px] h-[34px] w-[120px] border border-[#ebebeb]" />
-          <div className="absolute left-[180px] top-[231px] h-[34px] w-[120px] border border-[#ebebeb]" />
-          <div className="absolute left-[330px] top-[231px] h-[34px] w-[120px] border border-[#ebebeb]" />
-
-          {[
-            ["자주 묻는 질문", 54, 204],
-            ["서비스 소개", 212, 204],
-            ["확률표", 374, 204],
-            ["문의 게시판", 62, 248],
-            ["이용약관", 219, 248],
-            ["개인정보처리방침", 348, 248],
-          ].map(([label, left, top]) => (
-            <p
-              key={label}
-              className="absolute -translate-y-1/2 font-['Noto_Sans_KR',sans-serif] text-[12px] font-medium tracking-[-0.48px] text-[#737373]"
-              style={{ left: Number(left), top: Number(top) }}
-            >
-              {label}
-            </p>
-          ))}
-          <SupportFooterOverlays firstRowTop={187} secondRowTop={231} />
 
           <div className="absolute left-0 right-0 top-[332px] h-[158px] bg-white px-[29px] pt-[30px]">
             <div className="space-y-[9px] font-['Pretendard',sans-serif] text-[12px] leading-none text-[#959595]">

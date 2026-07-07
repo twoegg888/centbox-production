@@ -93,3 +93,36 @@ export function SupportFooterOverlays({
     </>
   );
 }
+
+export function FooterSupportLinks({ className = "" }: { className?: string }) {
+  const navigate = useNavigate();
+
+  const links: FooterSupportLabel[] = [
+    "자주 묻는 질문",
+    "서비스 소개",
+    "확률표",
+    "문의 게시판",
+    "이용약관",
+    "개인정보처리방침",
+  ];
+
+  return (
+    <section className={className}>
+      <p className="mb-[14px] font-['Noto_Sans_KR',sans-serif] text-[12px] font-medium tracking-[-0.48px] text-[#3e3e3e]">
+        고객지원
+      </p>
+      <div className="grid grid-cols-3 gap-x-[30px] gap-y-[10px]">
+        {links.map((label) => (
+          <button
+            key={label}
+            onClick={() => navigate(FOOTER_SUPPORT_PATHS[label])}
+            className="flex h-[34px] w-[120px] items-center justify-center border border-[#ebebeb] bg-white font-['Noto_Sans_KR',sans-serif] text-[12px] font-medium tracking-[-0.48px] text-[#737373]"
+            type="button"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
