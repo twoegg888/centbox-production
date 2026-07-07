@@ -17,6 +17,7 @@ type BannerProduct = {
 interface Props {
   onCategoryClick?: (label: string) => void;
   staticLayout?: boolean;
+  onBannerDismissChange?: (isDismissed: boolean) => void;
 }
 
 function getRandomUserName() {
@@ -32,7 +33,7 @@ function formatBannerMessage(productName: string) {
   return `${getRandomUserName()}님께서 "${productName}"를 획득했어요!`;
 }
 
-export default function SharedHeader({ onCategoryClick, staticLayout = false }: Props) {
+export default function SharedHeader({ onCategoryClick, staticLayout = false, onBannerDismissChange }: Props) {
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const [bannerProducts, setBannerProducts] = useState<BannerProduct[]>([]);
   const [bannerIndex, setBannerIndex] = useState(0);
@@ -91,6 +92,7 @@ export default function SharedHeader({ onCategoryClick, staticLayout = false }: 
 
   const handleDismissBanner = () => {
     setIsBannerDismissed(true);
+    onBannerDismissChange?.(true);
   };
 
   return (

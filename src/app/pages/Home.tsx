@@ -322,6 +322,7 @@ export default function Home() {
   const { homeBannerImageUrls } = useSiteResources();
   const [homeProducts, setHomeProducts] = useState<HomeProduct[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<HomeProduct[]>([]);
+  const [isHeaderBannerDismissed, setIsHeaderBannerDismissed] = useState(false);
 
   useEffect(() => {
     const fetchHomeProducts = async () => {
@@ -423,40 +424,42 @@ export default function Home() {
           }
         `}</style>
 
-        <FigmaHome />
-        <ManagedHomeBanner imageUrls={homeBannerImageUrls} />
-        <SharedHeader onCategoryClick={handleCategoryClick} />
-        <BoxImageFallbackOverlays displayNames={displayNames} boxSettings={boxSettings} />
-        <TreasureProductRail
-          products={homeProducts}
-          displayNames={displayNames}
-          boxSettings={boxSettings}
-          onOpenProduct={(productName, fallbackTicketType) =>
-            navigate(buildTicketDetailPath(productName || "", fallbackTicketType))
-          }
-        />
-        <FeaturedHighValueProducts
-          products={featuredProducts}
-          displayNames={displayNames}
-          boxSettings={boxSettings}
-          onOpenProduct={(productName, fallbackTicketType) =>
-            navigate(buildTicketDetailPath(productName || "", fallbackTicketType))
-          }
-        />
-        <TicketLinkOverlays
-          homeProducts={homeProducts}
-          onOpenProduct={(productName, fallbackTicketType) =>
-            navigate(buildTicketDetailPath(productName || "", fallbackTicketType))
-          }
-        />
-        <SupportFooterOverlays firstRowTop={3543} secondRowTop={3587} />
+        <div className={`absolute inset-0 transition-transform duration-200 ${isHeaderBannerDismissed ? "-translate-y-[52px]" : ""}`}>
+          <FigmaHome />
+          <ManagedHomeBanner imageUrls={homeBannerImageUrls} />
+          <BoxImageFallbackOverlays displayNames={displayNames} boxSettings={boxSettings} />
+          <TreasureProductRail
+            products={homeProducts}
+            displayNames={displayNames}
+            boxSettings={boxSettings}
+            onOpenProduct={(productName, fallbackTicketType) =>
+              navigate(buildTicketDetailPath(productName || "", fallbackTicketType))
+            }
+          />
+          <FeaturedHighValueProducts
+            products={featuredProducts}
+            displayNames={displayNames}
+            boxSettings={boxSettings}
+            onOpenProduct={(productName, fallbackTicketType) =>
+              navigate(buildTicketDetailPath(productName || "", fallbackTicketType))
+            }
+          />
+          <TicketLinkOverlays
+            homeProducts={homeProducts}
+            onOpenProduct={(productName, fallbackTicketType) =>
+              navigate(buildTicketDetailPath(productName || "", fallbackTicketType))
+            }
+          />
+          <SupportFooterOverlays firstRowTop={3543} secondRowTop={3587} />
 
-        <button
-          aria-label="공지사항 열기"
-          className="absolute left-0 top-[451px] z-30 h-[49px] w-full bg-transparent"
-          onClick={() => navigate("/notice")}
-          type="button"
-        />
+          <button
+            aria-label="공지사항 열기"
+            className="absolute left-0 top-[451px] z-30 h-[49px] w-full bg-transparent"
+            onClick={() => navigate("/notice")}
+            type="button"
+          />
+        </div>
+        <SharedHeader onCategoryClick={handleCategoryClick} onBannerDismissChange={setIsHeaderBannerDismissed} />
       </div>
 
       <SharedNavBar activePage="home" onNavigate={handleNavigate} />
