@@ -4,7 +4,8 @@ import { getApiBase, publicAnonKey } from "../../../utils/supabase/info";
 
 // 공통 헤더 높이: 배너(52) + 헤더바(60) + 카테고리바(50) = 162px
 export const HEADER_HEIGHT = 162;
-const HEADER_BANNER_HEIGHT = 52;
+export const HEADER_BANNER_HEIGHT = 52;
+export const HEADER_CONTENT_HEIGHT = HEADER_HEIGHT - HEADER_BANNER_HEIGHT;
 const BANNER_PRODUCT_MIN_POINTS = 100000;
 const BANNER_TICKET_TYPES = ["legendary", "mystery", "lucky", "starlight", "purdal"] as const;
 
@@ -17,7 +18,13 @@ type BannerProduct = {
 interface Props {
   onCategoryClick?: (label: string) => void;
   staticLayout?: boolean;
-  onBannerDismissChange?: (isDismissed: boolean) => void;
+  includeBanner?: boolean;
+  topOffset?: number;
+}
+
+interface HeaderAcquisitionBannerProps {
+  staticLayout?: boolean;
+  onDismiss?: () => void;
 }
 
 function getRandomUserName() {
@@ -33,14 +40,12 @@ function formatBannerMessage(productName: string) {
   return `${getRandomUserName()}님께서 "${productName}"를 획득했어요!`;
 }
 
-export default function SharedHeader({ onCategoryClick, staticLayout = false, onBannerDismissChange }: Props) {
-  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+export function HeaderAcquisitionBanner({ staticLayout = false, onDismiss }: HeaderAcquisitionBannerProps) {
   const [bannerProducts, setBannerProducts] = useState<BannerProduct[]>([]);
   const [bannerIndex, setBannerIndex] = useState(0);
-  const shouldShowBanner = staticLayout || !isBannerDismissed;
 
   useEffect(() => {
-    if (staticLayout || isBannerDismissed) return;
+    if (staticLayout) return;
 
     const fetchBannerProducts = async () => {
       try {
@@ -73,42 +78,31 @@ export default function SharedHeader({ onCategoryClick, staticLayout = false, on
     };
 
     void fetchBannerProducts();
-  }, [isBannerDismissed, staticLayout]);
+  }, [staticLayout]);
 
   useEffect(() => {
-    if (staticLayout || bannerProducts.length <= 1 || isBannerDismissed) return;
+    if (staticLayout || bannerProducts.length <= 1) return;
 
     const intervalId = window.setInterval(() => {
       setBannerIndex((currentIndex) => (currentIndex + 1) % bannerProducts.length);
     }, 3500);
 
     return () => window.clearInterval(intervalId);
-  }, [bannerProducts.length, isBannerDismissed, staticLayout]);
+  }, [bannerProducts.length, staticLayout]);
 
   const bannerMessage = useMemo(() => {
     const product = bannerProducts[bannerIndex];
     return formatBannerMessage(product?.name || "Airpods Max 3");
   }, [bannerProducts, bannerIndex]);
 
-  const handleDismissBanner = () => {
-    setIsBannerDismissed(true);
-    onBannerDismissChange?.(true);
-  };
-
   return (
-    <div
-      className="absolute top-0 left-0 w-full bg-white z-20"
-      style={{ height: HEADER_HEIGHT }}
-    >
-      {/* ── 1. Head Banner (52px) ──────────────────────────── */}
-      {shouldShowBanner && (
       <div className="absolute top-0 left-0 w-full h-[52px] bg-[rgba(0,0,71,0.8)]">
         {/* 닫기 버튼 */}
         {!staticLayout && (
           <button
             aria-label="상단 배너 닫기"
             className="absolute right-[16px] top-1/2 flex size-[30px] -translate-y-1/2 items-center justify-center"
-            onClick={handleDismissBanner}
+            onClick={onDismiss}
             type="button"
           >
             <div className="size-[12px]">
@@ -132,6 +126,23 @@ export default function SharedHeader({ onCategoryClick, staticLayout = false, on
           </p>
         </div>
       </div>
+  );
+}
+
+export default function SharedHeader({ onCategoryClick, staticLayout = false, includeBanner = true, topOffset = 0 }: Props) {
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+  const shouldShowBanner = includeBanner && (staticLayout || !isBannerDismissed);
+
+  return (
+    <div
+      className="absolute left-0 w-full bg-white z-20"
+      style={{ height: shouldShowBanner ? HEADER_HEIGHT : HEADER_CONTENT_HEIGHT, top: topOffset }}
+    >
+      {shouldShowBanner && (
+        <HeaderAcquisitionBanner
+          staticLayout={staticLayout}
+          onDismiss={() => setIsBannerDismissed(true)}
+        />
       )}
 
       {/* ── 2. Header Bar (60px, top=52) ───────────────────── */}

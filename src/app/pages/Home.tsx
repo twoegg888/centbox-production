@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import FigmaHome from "../../figma-make/imports/Home-1";
-import SharedHeader from "../../figma-make/components/SharedHeader";
+import SharedHeader, { HeaderAcquisitionBanner, HEADER_BANNER_HEIGHT } from "../../figma-make/components/SharedHeader";
 import SharedNavBar from "../../figma-make/components/SharedNavBar";
 import { getSupportPath, SupportFooterOverlays } from "../components/SupportNavigation";
 import { getApiBase, publicAnonKey } from "../../../utils/supabase/info";
@@ -322,7 +322,7 @@ export default function Home() {
   const { homeBannerImageUrls } = useSiteResources();
   const [homeProducts, setHomeProducts] = useState<HomeProduct[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<HomeProduct[]>([]);
-  const [isHeaderBannerDismissed, setIsHeaderBannerDismissed] = useState(false);
+  const [isTopBannerVisible, setIsTopBannerVisible] = useState(true);
 
   useEffect(() => {
     const fetchHomeProducts = async () => {
@@ -424,7 +424,7 @@ export default function Home() {
           }
         `}</style>
 
-        <div className={`absolute inset-0 transition-transform duration-200 ${isHeaderBannerDismissed ? "-translate-y-[52px]" : ""}`}>
+        <div className={`absolute inset-0 transition-transform duration-200 ${isTopBannerVisible ? "" : "-translate-y-[52px]"}`}>
           <FigmaHome />
           <ManagedHomeBanner imageUrls={homeBannerImageUrls} />
           <BoxImageFallbackOverlays displayNames={displayNames} boxSettings={boxSettings} />
@@ -459,7 +459,16 @@ export default function Home() {
             type="button"
           />
         </div>
-        <SharedHeader onCategoryClick={handleCategoryClick} onBannerDismissChange={setIsHeaderBannerDismissed} />
+        {isTopBannerVisible && (
+          <div className="absolute left-0 top-0 z-30 h-[52px] w-full">
+            <HeaderAcquisitionBanner onDismiss={() => setIsTopBannerVisible(false)} />
+          </div>
+        )}
+        <SharedHeader
+          includeBanner={false}
+          topOffset={isTopBannerVisible ? HEADER_BANNER_HEIGHT : 0}
+          onCategoryClick={handleCategoryClick}
+        />
       </div>
 
       <SharedNavBar activePage="home" onNavigate={handleNavigate} />
