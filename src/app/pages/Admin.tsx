@@ -132,19 +132,19 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       {/* 헤더 */}
-      <div className="bg-white border-b border-[#e5e7eb] sticky top-0 z-10 shadow-sm">
-        <div className="max-w-[1400px] mx-auto px-6">
-          <div className="flex justify-between items-center h-[72px]">
-            <div className="flex items-center gap-6">
-              <Link to="/" className="text-[#6b7280] hover:text-[#111827] transition-colors font-['Pretendard:Medium',sans-serif] text-[14px]">
+      <div className="bg-white border-b border-[#e5e7eb] sticky top-0 z-20 shadow-sm">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+          <div className="flex min-h-[64px] flex-col justify-center gap-3 py-3 sm:h-[72px] sm:flex-row sm:items-center sm:justify-between sm:py-0">
+            <div className="flex items-center gap-3 sm:gap-6">
+              <Link to="/" className="text-[#6b7280] hover:text-[#111827] transition-colors font-['Pretendard:Medium',sans-serif] text-[13px] sm:text-[14px]">
                 ← 홈으로
               </Link>
-              <div className="w-[1px] h-[20px] bg-[#e5e7eb]" />
-              <h1 className="text-[24px] font-['Pretendard:Bold',sans-serif] text-[#111827]">관리자 대시보드</h1>
+              <div className="h-[18px] w-[1px] bg-[#e5e7eb]" />
+              <h1 className="text-[20px] font-['Pretendard:Bold',sans-serif] text-[#111827] sm:text-[24px]">관리자 대시보드</h1>
             </div>
             <button
               onClick={handleLogout}
-              className="px-[16px] py-[10px] text-[14px] text-[#6b7280] hover:text-[#ef4444] hover:bg-[#fef2f2] rounded-[8px] font-['Pretendard:Medium',sans-serif] transition-all"
+              className="self-start rounded-[8px] px-[12px] py-[8px] text-[13px] text-[#6b7280] transition-all hover:bg-[#fef2f2] hover:text-[#ef4444] font-['Pretendard:Medium',sans-serif] sm:self-auto sm:px-[16px] sm:py-[10px] sm:text-[14px]"
             >
               로그아웃
             </button>
@@ -153,14 +153,14 @@ export default function Admin() {
       </div>
 
       {/* 탭 네비게이션 */}
-      <div className="bg-white border-b border-[#e5e7eb]">
-        <div className="max-w-[1400px] mx-auto px-6">
-          <nav className="flex gap-[32px]">
+      <div className="bg-white border-b border-[#e5e7eb] sticky top-[104px] z-10 sm:static">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+          <nav className="flex gap-2 overflow-x-auto py-2 sm:gap-[32px] sm:py-0">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`py-[16px] px-[4px] border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[15px] transition-all ${
+              className={`shrink-0 rounded-full px-3 py-2 border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[13px] transition-all sm:rounded-none sm:py-[16px] sm:px-[4px] sm:text-[15px] ${
                 activeTab === 'dashboard'
-                  ? 'border-[#111827] text-[#111827]'
+                  ? 'border-[#111827] bg-[#111827] text-white sm:bg-transparent sm:text-[#111827]'
                   : 'border-transparent text-[#6b7280] hover:text-[#111827] hover:border-[#d1d5db]'
               }`}
             >
@@ -168,9 +168,9 @@ export default function Admin() {
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`py-[16px] px-[4px] border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[15px] transition-all ${
+              className={`shrink-0 rounded-full px-3 py-2 border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[13px] transition-all sm:rounded-none sm:py-[16px] sm:px-[4px] sm:text-[15px] ${
                 activeTab === 'users'
-                  ? 'border-[#111827] text-[#111827]'
+                  ? 'border-[#111827] bg-[#111827] text-white sm:bg-transparent sm:text-[#111827]'
                   : 'border-transparent text-[#6b7280] hover:text-[#111827] hover:border-[#d1d5db]'
               }`}
             >
@@ -178,9 +178,9 @@ export default function Admin() {
             </button>
             <button
               onClick={() => setActiveTab('products')}
-              className={`py-[16px] px-[4px] border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[15px] transition-all ${
+              className={`shrink-0 rounded-full px-3 py-2 border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[13px] transition-all sm:rounded-none sm:py-[16px] sm:px-[4px] sm:text-[15px] ${
                 activeTab === 'products'
-                  ? 'border-[#111827] text-[#111827]'
+                  ? 'border-[#111827] bg-[#111827] text-white sm:bg-transparent sm:text-[#111827]'
                   : 'border-transparent text-[#6b7280] hover:text-[#111827] hover:border-[#d1d5db]'
               }`}
             >
@@ -188,9 +188,9 @@ export default function Admin() {
             </button>
             <button
               onClick={() => setActiveTab('luckydraws')}
-              className={`py-[16px] px-[4px] border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[15px] transition-all ${
+              className={`shrink-0 rounded-full px-3 py-2 border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[13px] transition-all sm:rounded-none sm:py-[16px] sm:px-[4px] sm:text-[15px] ${
                 activeTab === 'luckydraws'
-                  ? 'border-[#111827] text-[#111827]'
+                  ? 'border-[#111827] bg-[#111827] text-white sm:bg-transparent sm:text-[#111827]'
                   : 'border-transparent text-[#6b7280] hover:text-[#111827] hover:border-[#d1d5db]'
               }`}
             >
@@ -198,9 +198,9 @@ export default function Admin() {
             </button>
             <button
               onClick={() => setActiveTab('shipping')}
-              className={`py-[16px] px-[4px] border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[15px] transition-all ${
+              className={`shrink-0 rounded-full px-3 py-2 border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[13px] transition-all sm:rounded-none sm:py-[16px] sm:px-[4px] sm:text-[15px] ${
                 activeTab === 'shipping'
-                  ? 'border-[#111827] text-[#111827]'
+                  ? 'border-[#111827] bg-[#111827] text-white sm:bg-transparent sm:text-[#111827]'
                   : 'border-transparent text-[#6b7280] hover:text-[#111827] hover:border-[#d1d5db]'
               }`}
             >
@@ -208,9 +208,9 @@ export default function Admin() {
             </button>
             <button
               onClick={() => setActiveTab('homeproducts')}
-              className={`py-[16px] px-[4px] border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[15px] transition-all ${
+              className={`shrink-0 rounded-full px-3 py-2 border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[13px] transition-all sm:rounded-none sm:py-[16px] sm:px-[4px] sm:text-[15px] ${
                 activeTab === 'homeproducts'
-                  ? 'border-[#111827] text-[#111827]'
+                  ? 'border-[#111827] bg-[#111827] text-white sm:bg-transparent sm:text-[#111827]'
                   : 'border-transparent text-[#6b7280] hover:text-[#111827] hover:border-[#d1d5db]'
               }`}
             >
@@ -218,9 +218,9 @@ export default function Admin() {
             </button>
             <button
               onClick={() => setActiveTab('boxsettings')}
-              className={`py-[16px] px-[4px] border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[15px] transition-all ${
+              className={`shrink-0 rounded-full px-3 py-2 border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[13px] transition-all sm:rounded-none sm:py-[16px] sm:px-[4px] sm:text-[15px] ${
                 activeTab === 'boxsettings'
-                  ? 'border-[#111827] text-[#111827]'
+                  ? 'border-[#111827] bg-[#111827] text-white sm:bg-transparent sm:text-[#111827]'
                   : 'border-transparent text-[#6b7280] hover:text-[#111827] hover:border-[#d1d5db]'
               }`}
             >
@@ -228,9 +228,9 @@ export default function Admin() {
             </button>
             <button
               onClick={() => setActiveTab('siteresources')}
-              className={`py-[16px] px-[4px] border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[15px] transition-all ${
+              className={`shrink-0 rounded-full px-3 py-2 border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[13px] transition-all sm:rounded-none sm:py-[16px] sm:px-[4px] sm:text-[15px] ${
                 activeTab === 'siteresources'
-                  ? 'border-[#111827] text-[#111827]'
+                  ? 'border-[#111827] bg-[#111827] text-white sm:bg-transparent sm:text-[#111827]'
                   : 'border-transparent text-[#6b7280] hover:text-[#111827] hover:border-[#d1d5db]'
               }`}
             >
@@ -241,7 +241,7 @@ export default function Admin() {
       </div>
 
       {/* 탭 컨텐츠 */}
-      <div className="max-w-[1400px] mx-auto px-6 py-[32px]">
+      <div className="max-w-[1400px] mx-auto px-4 py-[20px] sm:px-6 sm:py-[32px]">
         {activeTab === 'dashboard' && <DashboardTab isAuthenticated={isAuthenticated} />}
         {activeTab === 'users' && <UsersTab isAuthenticated={isAuthenticated} />}
         {activeTab === 'products' && <ProductsTab isAuthenticated={isAuthenticated} boxSettings={activeBoxSettings} displayNames={displayNames} />}
@@ -488,7 +488,7 @@ function UsersTab({ isAuthenticated }: { isAuthenticated: boolean }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-bold text-gray-900">회원 목록 ({users.length}명)</h2>
       </div>
 
@@ -497,25 +497,25 @@ function UsersTab({ isAuthenticated }: { isAuthenticated: boolean }) {
           {users.map((user) => (
             <li key={user.kakaoId}>
               <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
+                    <div className="flex flex-col gap-1 mb-1 sm:flex-row sm:items-center sm:gap-3">
                       <p className="text-sm font-medium text-gray-900">{user.userName}</p>
                       {user.email && (
-                        <span className="text-xs text-gray-500">{user.email}</span>
+                        <span className="break-all text-xs text-gray-500">{user.email}</span>
                       )}
                     </div>
-                    <span className="text-xs text-gray-400">카카오 ID: {user.kakaoId}</span>
-                    <div className="mt-2 flex gap-4 text-sm text-gray-500">
+                    <span className="break-all text-xs text-gray-400">카카오 ID: {user.kakaoId}</span>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
                       <span>💰 {user.points?.toLocaleString() || 0}P</span>
                       <span>🎫 당첨 {user.winningTicketsCount || 0}개</span>
                       <span>📝 거래 {user.transactionsCount || 0}건</span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-2 gap-2 sm:flex">
                     <button
                       onClick={() => setSelectedUser(user)}
-                      className="ml-4 px-4 py-2 bg-black text-white text-sm rounded hover:bg-gray-800"
+                      className="px-4 py-2 bg-black text-white text-sm rounded hover:bg-gray-800 sm:ml-4"
                     >
                       포인트 충전
                     </button>
@@ -535,8 +535,8 @@ function UsersTab({ isAuthenticated }: { isAuthenticated: boolean }) {
 
       {/* 포인트 충전 모달 */}
       {selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black bg-opacity-50 p-4 sm:items-center">
+          <div className="my-6 w-full max-w-md rounded-lg bg-white p-5 sm:p-6">
             <h3 className="text-lg font-bold mb-4">포인트 충전 - {selectedUser.userName}</h3>
             
             <div className="space-y-4">
@@ -548,7 +548,7 @@ function UsersTab({ isAuthenticated }: { isAuthenticated: boolean }) {
                   onChange={(e) => setPointAmount(Number(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:flex">
                   {[10000, 50000, 100000, 500000].map((amount) => (
                     <button
                       key={amount}
@@ -712,7 +712,7 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">상자 설정</h2>
           <p className="mt-2 text-sm text-gray-600">
@@ -728,8 +728,8 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         </button>
       </div>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="grid grid-cols-[130px_180px_1fr_1fr_90px_90px] gap-3 border-b bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">
+      <div className="overflow-hidden rounded-lg bg-white shadow">
+        <div className="hidden grid-cols-[130px_180px_1fr_1fr_90px_90px] gap-3 border-b bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700 lg:grid">
           <div>코드 키</div>
           <div>프론트 표시 이름</div>
           <div>홈 상자 이미지 URL</div>
@@ -738,15 +738,23 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
           <div>순서</div>
         </div>
         {settings.map((setting) => (
-          <div key={setting.ticketType} className="grid grid-cols-[130px_180px_1fr_1fr_90px_90px] gap-3 border-b px-4 py-3 last:border-b-0">
-            <div className="flex items-center text-sm font-mono text-gray-700">{setting.ticketType}</div>
-            <input
-              type="text"
-              value={setting.displayName}
-              onChange={(e) => handleChangeSetting(setting.ticketType, { displayName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-            <div className="flex items-center gap-2">
+          <div key={setting.ticketType} className="grid gap-3 border-b px-4 py-4 last:border-b-0 lg:grid-cols-[130px_180px_1fr_1fr_90px_90px] lg:py-3">
+            <div className="flex items-center justify-between gap-3 lg:block">
+              <span className="text-xs font-semibold text-gray-500 lg:hidden">코드 키</span>
+              <span className="text-sm font-mono text-gray-700">{setting.ticketType}</span>
+            </div>
+            <label className="block lg:flex lg:items-center">
+              <span className="mb-1 block text-xs font-semibold text-gray-500 lg:hidden">프론트 표시 이름</span>
+              <input
+                type="text"
+                value={setting.displayName}
+                onChange={(e) => handleChangeSetting(setting.ticketType, { displayName: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </label>
+            <label className="block lg:flex lg:items-center lg:gap-2">
+              <span className="mb-1 block text-xs font-semibold text-gray-500 lg:hidden">홈 상자 이미지 URL</span>
+              <div className="flex items-center gap-2">
               <input
                 type="url"
                 value={setting.homeImageUrl}
@@ -756,7 +764,10 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
               />
               <AdminImage src={setting.homeImageUrl} alt={`${setting.displayName} 홈 이미지`} className="h-10 w-10 rounded object-cover" />
             </div>
-            <div className="flex items-center gap-2">
+            </label>
+            <label className="block lg:flex lg:items-center lg:gap-2">
+              <span className="mb-1 block text-xs font-semibold text-gray-500 lg:hidden">상세 이미지 URL</span>
+              <div className="flex items-center gap-2">
               <input
                 type="url"
                 value={setting.detailImageUrl}
@@ -766,6 +777,8 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
               />
               <AdminImage src={setting.detailImageUrl} alt={`${setting.displayName} 상세 이미지`} className="h-10 w-10 rounded object-cover" />
             </div>
+            </label>
+            <div className="grid grid-cols-2 gap-3 lg:contents">
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
                 type="checkbox"
@@ -774,13 +787,17 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
               />
               사용
             </label>
-            <input
-              type="number"
-              value={setting.sortOrder}
-              onChange={(e) => handleChangeSetting(setting.ticketType, { sortOrder: Number(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              min="1"
-            />
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-gray-500 lg:hidden">순서</span>
+              <input
+                type="number"
+                value={setting.sortOrder}
+                onChange={(e) => handleChangeSetting(setting.ticketType, { sortOrder: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                min="1"
+              />
+            </label>
+            </div>
           </div>
         ))}
       </div>
@@ -895,7 +912,7 @@ function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">리소스 설정</h2>
           <p className="mt-2 text-sm text-gray-600">
@@ -911,7 +928,7 @@ function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         </button>
       </div>
 
-      <div className="rounded-lg bg-white p-6 shadow space-y-6">
+      <div className="rounded-lg bg-white p-4 shadow space-y-6 sm:p-6">
         <div>
           <label className="mb-2 block text-sm font-semibold text-gray-700">뽑기 영상 URL</label>
           <input
@@ -922,7 +939,7 @@ function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
             placeholder="https://...mp4"
           />
           <video
-            className="mt-4 h-[240px] w-full max-w-[420px] rounded bg-black object-cover"
+            className="mt-4 h-[200px] w-full max-w-[420px] rounded bg-black object-cover sm:h-[240px]"
             controls
             muted
             src={resources.drawAnimationUrl}
@@ -1298,9 +1315,9 @@ function ProductsTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center flex-wrap gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-bold text-gray-900">상품 관리</h2>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:flex">
           {/* 엑셀 템플릿 다운로드 버튼 */}
           <button
             onClick={handleDownloadTemplate}
@@ -1434,24 +1451,24 @@ function ProductsTab({
             {paginatedProducts.map((product) => (
               <li key={product.id}>
                 <div className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-4">
                       <AdminImage
                         src={product.imageUrl}
                         alt={product.name}
-                        className="w-16 h-16 object-cover rounded"
+                        className="h-16 w-16 shrink-0 rounded object-cover"
                       />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                        <p className="text-sm text-gray-500">{product.brand}</p>
-                        <div className="mt-1 flex gap-3 text-xs text-gray-500">
+                      <div className="min-w-0">
+                        <p className="break-words text-sm font-medium text-gray-900">{product.name}</p>
+                        <p className="break-words text-sm text-gray-500">{product.brand}</p>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
                           <span>💰 {product.points.toLocaleString()}P</span>
                           <span>⚖️ 가중치 {product.probability}</span>
                           <span>📦 재고 {product.stock}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex">
                       <button
                         onClick={() => setEditingProduct(product)}
                         className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
@@ -1477,7 +1494,7 @@ function ProductsTab({
             {Math.min(safeCurrentPage * pageSize, filteredProducts.length).toLocaleString()} /
             {filteredProducts.length.toLocaleString()}개
           </p>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
             <button
               onClick={() => setCurrentPage(1)}
               disabled={safeCurrentPage === 1}
@@ -1624,8 +1641,8 @@ function ProductModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 my-8">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black bg-opacity-50 p-4 sm:items-center">
+      <div className="my-6 w-full max-w-md rounded-lg bg-white p-5 sm:p-6">
         <h3 className="text-lg font-bold mb-4">
           {product ? '상품 수정' : '상품 추가'} - {displayNames[ticketType] || TICKET_TYPE_NAMES[ticketType]}
         </h3>
@@ -1677,7 +1694,7 @@ function ProductModal({
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">포인트</label>
               <input
@@ -1720,7 +1737,7 @@ function ProductModal({
             </div>
           </div>
 
-          <div className="flex gap-2 pt-4">
+          <div className="grid grid-cols-2 gap-2 pt-4">
             <button
               type="submit"
               className="flex-1 bg-black text-white py-2 rounded hover:bg-gray-800"
@@ -1923,7 +1940,7 @@ function LuckyDrawsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-bold text-gray-900">럭키드로우 관리</h2>
         <button
           onClick={() => setShowAddModal(true)}
@@ -1951,15 +1968,15 @@ function LuckyDrawsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {luckyDraws.map((draw) => (
             <div key={draw.id} className="bg-white shadow rounded-lg p-6">
-              <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-start gap-4 mb-4">
                 <AdminImage
                   src={draw.imageUrl}
                   alt={draw.name}
-                  className="w-20 h-20 object-cover rounded"
+                  className="h-20 w-20 shrink-0 rounded object-cover"
                 />
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-900">{draw.name}</h3>
-                  <p className="text-sm text-gray-500">{draw.brand}</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="break-words font-bold text-gray-900">{draw.name}</h3>
+                  <p className="break-words text-sm text-gray-500">{draw.brand}</p>
                   <p className="text-sm text-gray-500">참여: {draw.entryPoints.toLocaleString()}P</p>
                   <p className="text-xs text-gray-500">
                     상태: {draw.status === 'ended' ? '종료' : draw.status === 'completed' ? '추첨완료' : '진행중'}
@@ -2021,9 +2038,9 @@ function LuckyDrawsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
       )}
 
       {participantsDraw && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black bg-opacity-50 p-4 sm:items-center">
+          <div className="my-6 max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-5 sm:p-6">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h3 className="text-lg font-bold">참여자 목록 - {participantsDraw.name}</h3>
               <button
                 onClick={() => setParticipantsDraw(null)}
@@ -2040,12 +2057,12 @@ function LuckyDrawsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
               <div className="space-y-2">
                 {participants.map((participant) => (
                   <div key={`${participant.kakaoId}-${participant.enteredAt}`} className="border rounded p-3">
-                    <div className="flex justify-between gap-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:gap-3">
                       <div>
                         <p className="font-medium text-sm">{participant.userName || '이름 없음'}</p>
                         <p className="text-xs text-gray-500">카카오 ID: {participant.kakaoId}</p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left sm:text-right">
                         <p className="text-xs text-gray-500">{participant.status}</p>
                         <p className="text-xs text-gray-500">
                           {participant.enteredAt ? new Date(participant.enteredAt).toLocaleString('ko-KR') : '-'}
@@ -2148,8 +2165,8 @@ function LuckyDrawModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black bg-opacity-50 p-4 sm:items-center">
+      <div className="my-6 w-full max-w-md rounded-lg bg-white p-5 sm:p-6">
         <h3 className="text-lg font-bold mb-4">럭키드로우 {luckyDraw ? '수정' : '추가'}</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -2208,7 +2225,7 @@ function LuckyDrawModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">종료일</label>
               <input
@@ -2247,7 +2264,7 @@ function LuckyDrawModal({
             </div>
           )}
 
-          <div className="flex gap-2 pt-4">
+          <div className="grid grid-cols-2 gap-2 pt-4">
             <button
               type="submit"
               className="flex-1 bg-black text-white py-2 rounded hover:bg-gray-800"

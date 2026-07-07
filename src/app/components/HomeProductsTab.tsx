@@ -219,7 +219,7 @@ export default function HomeProductsTab({
   };
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold mb-6">홈 메인 상품 관리</h1>
       <p className="text-gray-600 mb-4">
         홈 화면의 "박스에서 어떤 상품이 나왔을까요?" 섹션에 표시될 상품을 선택하세요.
@@ -228,7 +228,7 @@ export default function HomeProductsTab({
       </p>
 
       {/* 현재 등록된 홈 메인 상품 */}
-      <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+      <div className="p-4 bg-gray-50 rounded-lg">
         <h2 className="text-lg font-semibold mb-4">현재 홈 메인 상품 ({homeProducts.length}개)</h2>
         {homeProducts.length === 0 ? (
           <p className="text-gray-500">등록된 상품이 없습니다.</p>
@@ -249,8 +249,8 @@ export default function HomeProductsTab({
                     <div className="text-xs text-blue-600 font-semibold mb-1">
                       {displayNames[product.ticketType as TicketType] || product.ticketType}
                     </div>
-                    <div className="font-semibold text-sm truncate">{product.name}</div>
-                    <div className="text-xs text-gray-600">{product.brand}</div>
+                    <div className="break-words text-sm font-semibold">{product.name}</div>
+                    <div className="break-words text-xs text-gray-600">{product.brand}</div>
                     <div className="text-sm font-bold mt-1">{product.points.toLocaleString()}P</div>
                   </div>
                 </div>
@@ -331,8 +331,8 @@ export default function HomeProductsTab({
                         }}
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm truncate">{product.name}</div>
-                        <div className="text-xs text-gray-600">{product.brand}</div>
+                        <div className="break-words text-sm font-semibold">{product.name}</div>
+                        <div className="break-words text-xs text-gray-600">{product.brand}</div>
                         <div className="text-sm font-bold mt-1">{product.points.toLocaleString()}P</div>
                       </div>
                     </div>
@@ -351,13 +351,13 @@ export default function HomeProductsTab({
                 );
               })}
             </div>
-            <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-gray-600">
                 {((safeCurrentPage - 1) * pageSize + 1).toLocaleString()}-
                 {Math.min(safeCurrentPage * pageSize, filteredAvailableProducts.length).toLocaleString()} /
                 {filteredAvailableProducts.length.toLocaleString()}개
               </p>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-3 items-center gap-2 sm:flex">
                 <button
                   onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                   disabled={safeCurrentPage === 1}

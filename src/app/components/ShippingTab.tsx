@@ -105,9 +105,9 @@ export default function ShippingTab({ isAuthenticated }: { isAuthenticated?: boo
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-bold text-gray-900">배송 관리</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 sm:overflow-visible sm:pb-0">
           <button
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded text-sm font-medium ${
@@ -164,21 +164,21 @@ export default function ShippingTab({ isAuthenticated }: { isAuthenticated?: boo
       ) : (
         <div className="space-y-4">
           {filteredRequests.map((request) => (
-            <div key={request.ticketId} className="bg-white shadow rounded-lg p-6">
-              <div className="flex gap-4">
+            <div key={request.ticketId} className="bg-white shadow rounded-lg p-4 sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row">
                 <img
                   src={request.ticket.productImage || IMAGE_FALLBACK_SRC}
                   alt={request.ticket.productName}
-                  className="w-24 h-24 object-cover rounded"
+                  className="h-24 w-24 rounded object-cover"
                   onError={(e) => {
                     e.currentTarget.src = IMAGE_FALLBACK_SRC;
                   }}
                 />
                 <div className="flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
+                  <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
                       <h3 className="font-bold text-gray-900">{request.ticket.productBrand}</h3>
-                      <p className="text-sm text-gray-600">{request.ticket.productName}</p>
+                      <p className="break-words text-sm text-gray-600">{request.ticket.productName}</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -192,7 +192,7 @@ export default function ShippingTab({ isAuthenticated }: { isAuthenticated?: boo
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-gray-50 rounded">
+                  <div className="mt-4 grid grid-cols-1 gap-4 rounded bg-gray-50 p-4 sm:grid-cols-2">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">받는 사람</p>
                       <p className="text-sm font-medium">{request.shippingInfo.name}</p>
@@ -201,7 +201,7 @@ export default function ShippingTab({ isAuthenticated }: { isAuthenticated?: boo
                       <p className="text-xs text-gray-500 mb-1">연락처</p>
                       <p className="text-sm font-medium">{request.shippingInfo.phone}</p>
                     </div>
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                       <p className="text-xs text-gray-500 mb-1">배송 주소</p>
                       <p className="text-sm font-medium">
                         [{request.shippingInfo.zipCode}] {request.shippingInfo.address}<br />
@@ -209,7 +209,7 @@ export default function ShippingTab({ isAuthenticated }: { isAuthenticated?: boo
                       </p>
                     </div>
                     {request.shippingInfo.memo && (
-                      <div className="col-span-2">
+                      <div className="sm:col-span-2">
                         <p className="text-xs text-gray-500 mb-1">배송 메모</p>
                         <p className="text-sm text-gray-700">{request.shippingInfo.memo}</p>
                       </div>
@@ -224,7 +224,7 @@ export default function ShippingTab({ isAuthenticated }: { isAuthenticated?: boo
                     </div>
                   </div>
 
-                  <div className="flex gap-2 mt-4">
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                     {request.status === 'pending' && (
                       <button
                         onClick={() => handleUpdateStatus(request.ticketId, 'shipped')}
