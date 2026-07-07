@@ -3222,8 +3222,8 @@ app.put("/make-server-53dba95c/admin/box-settings", async (c) => {
 
     const invalidImageSetting = cleanSettings.find((setting) => {
       return (
-        (setting.homeImageUrl && !isValidUrl(setting.homeImageUrl)) ||
-        (setting.detailImageUrl && !isValidUrl(setting.detailImageUrl))
+        (setting.homeImageUrl && !isValidHttpUrl(setting.homeImageUrl)) ||
+        (setting.detailImageUrl && !isValidHttpUrl(setting.detailImageUrl))
       );
     });
     if (invalidImageSetting) {
@@ -3273,16 +3273,16 @@ app.put("/make-server-53dba95c/admin/site-resources", async (c) => {
     const { resources } = await c.req.json();
     const cleanResources = getMergedSiteResources(resources || {});
 
-    if (!isValidUrl(cleanResources.drawAnimationUrl)) {
+    if (!isValidHttpUrl(cleanResources.drawAnimationUrl)) {
       return c.json({ error: "Invalid draw animation URL" }, 400);
     }
 
-    const invalidFontUrl = cleanResources.fontCssUrls.find((url: string) => !isValidUrl(url));
+    const invalidFontUrl = cleanResources.fontCssUrls.find((url: string) => !isValidHttpUrl(url));
     if (invalidFontUrl) {
       return c.json({ error: `Invalid font CSS URL: ${invalidFontUrl}` }, 400);
     }
 
-    const invalidHomeBannerUrl = cleanResources.homeBannerImageUrls.find((url: string) => !isValidUrl(url));
+    const invalidHomeBannerUrl = cleanResources.homeBannerImageUrls.find((url: string) => !isValidHttpUrl(url));
     if (invalidHomeBannerUrl) {
       return c.json({ error: `Invalid home banner image URL: ${invalidHomeBannerUrl}` }, 400);
     }
