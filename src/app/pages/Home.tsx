@@ -340,7 +340,11 @@ export default function Home() {
 
         const highValueProducts = productGroups
           .flat()
-          .filter((product) => product.imageUrl && typeof product.points === "number")
+          .map((product) => ({
+            ...product,
+            points: Number(product.points || 0),
+          }))
+          .filter((product) => product.name && Number.isFinite(product.points) && product.points > 0)
           .sort((first, second) => Number(second.points || 0) - Number(first.points || 0))
           .slice(0, 24);
 
