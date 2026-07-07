@@ -6,8 +6,9 @@ import HomeProductsTab from "../components/HomeProductsTab";
 import * as XLSX from 'xlsx';
 import { canonicalizeBoxTicketType } from "../utils/ticketTypes";
 import { BoxSetting, DEFAULT_BOX_DISPLAY_NAMES, DEFAULT_BOX_SETTINGS, useBoxSettings } from "../utils/boxSettings";
+import { DEFAULT_SITE_RESOURCES, mergeSiteResources, SiteResourceSettings } from "../utils/siteResources";
 
-type Tab = 'dashboard' | 'users' | 'products' | 'luckydraws' | 'shipping' | 'homeproducts' | 'boxsettings';
+type Tab = 'dashboard' | 'users' | 'products' | 'luckydraws' | 'shipping' | 'homeproducts' | 'boxsettings' | 'siteresources';
 type TicketType = BoxSetting['ticketType'];
 
 const TICKET_TYPE_NAMES: Record<TicketType, string> = DEFAULT_BOX_DISPLAY_NAMES;
@@ -225,6 +226,16 @@ export default function Admin() {
             >
               🧰 상자 설정
             </button>
+            <button
+              onClick={() => setActiveTab('siteresources')}
+              className={`py-[16px] px-[4px] border-b-[3px] font-['Pretendard:SemiBold',sans-serif] text-[15px] transition-all ${
+                activeTab === 'siteresources'
+                  ? 'border-[#111827] text-[#111827]'
+                  : 'border-transparent text-[#6b7280] hover:text-[#111827] hover:border-[#d1d5db]'
+              }`}
+            >
+              🎬 리소스 설정
+            </button>
           </nav>
         </div>
       </div>
@@ -238,6 +249,7 @@ export default function Admin() {
         {activeTab === 'shipping' && <ShippingTab isAuthenticated={isAuthenticated} />}
         {activeTab === 'homeproducts' && <HomeProductsTab isAuthenticated={isAuthenticated} boxSettings={activeBoxSettings} displayNames={displayNames} />}
         {activeTab === 'boxsettings' && <BoxSettingsTab isAuthenticated={isAuthenticated} />}
+        {activeTab === 'siteresources' && <SiteResourcesTab isAuthenticated={isAuthenticated} />}
       </div>
     </div>
   );
@@ -650,6 +662,16 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
       return;
     }
 
+    const invalidImageSetting = settings.find(
+      (setting) =>
+        (setting.homeImageUrl.trim() && !isValidHttpUrl(setting.homeImageUrl)) ||
+        (setting.detailImageUrl.trim() && !isValidHttpUrl(setting.detailImageUrl))
+    );
+    if (invalidImageSetting) {
+      alert(`❌ ${invalidImageSetting.displayName}의 이미지 URL은 http 또는 https 링크여야 합니다.`);
+      return;
+    }
+
     try {
       setSaving(true);
       const headers = getAuthHeaders();
@@ -694,7 +716,7 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">상자 설정</h2>
           <p className="mt-2 text-sm text-gray-600">
-            프론트에 표시되는 상자 이름을 관리합니다. 코드 키는 데이터 연결용이라 변경할 수 없습니다.
+            프론트에 표시되는 상자 이름과 기본 이미지를 관리합니다. 코드 키는 데이터 연결용이라 변경할 수 없습니다.
           </p>
         </div>
         <button
@@ -707,14 +729,16 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
       </div>
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="grid grid-cols-[160px_1fr_120px_120px] gap-3 border-b bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">
+        <div className="grid grid-cols-[130px_180px_1fr_1fr_90px_90px] gap-3 border-b bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">
           <div>코드 키</div>
           <div>프론트 표시 이름</div>
+          <div>홈 상자 이미지 URL</div>
+          <div>상세 이미지 URL</div>
           <div>노출</div>
           <div>순서</div>
         </div>
         {settings.map((setting) => (
-          <div key={setting.ticketType} className="grid grid-cols-[160px_1fr_120px_120px] gap-3 border-b px-4 py-3 last:border-b-0">
+          <div key={setting.ticketType} className="grid grid-cols-[130px_180px_1fr_1fr_90px_90px] gap-3 border-b px-4 py-3 last:border-b-0">
             <div className="flex items-center text-sm font-mono text-gray-700">{setting.ticketType}</div>
             <input
               type="text"
@@ -722,6 +746,26 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
               onChange={(e) => handleChangeSetting(setting.ticketType, { displayName: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
             />
+            <div className="flex items-center gap-2">
+              <input
+                type="url"
+                value={setting.homeImageUrl}
+                onChange={(e) => handleChangeSetting(setting.ticketType, { homeImageUrl: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="https://..."
+              />
+              <AdminImage src={setting.homeImageUrl} alt={`${setting.displayName} 홈 이미지`} className="h-10 w-10 rounded object-cover" />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="url"
+                value={setting.detailImageUrl}
+                onChange={(e) => handleChangeSetting(setting.ticketType, { detailImageUrl: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="https://..."
+              />
+              <AdminImage src={setting.detailImageUrl} alt={`${setting.displayName} 상세 이미지`} className="h-10 w-10 rounded object-cover" />
+            </div>
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
                 type="checkbox"
@@ -739,6 +783,164 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
             />
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// 리소스 설정 탭
+// ============================================
+function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
+  const [resources, setResources] = useState<SiteResourceSettings>(DEFAULT_SITE_RESOURCES);
+  const [fontText, setFontText] = useState(DEFAULT_SITE_RESOURCES.fontCssUrls.join('\n'));
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchResources();
+    }
+  }, [isAuthenticated]);
+
+  const fetchResources = async () => {
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) {
+        alert('❌ 인증 정보가 없습니다. 다시 로그인해주세요.');
+        return;
+      }
+
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/site-resources`,
+        { headers }
+      );
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const mergedResources = mergeSiteResources(data.resources || {});
+        setResources(mergedResources);
+        setFontText(mergedResources.fontCssUrls.join('\n'));
+      } else {
+        alert(`❌ 리소스 설정을 불러오지 못했습니다: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`❌ 에러: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    const fontCssUrls = fontText
+      .split('\n')
+      .map((url) => url.trim())
+      .filter(Boolean);
+
+    if (!resources.drawAnimationUrl.trim() || !isValidHttpUrl(resources.drawAnimationUrl)) {
+      alert('❌ 뽑기 영상 URL은 http 또는 https 링크여야 합니다.');
+      return;
+    }
+
+    const invalidFontUrl = fontCssUrls.find((url) => !isValidHttpUrl(url));
+    if (invalidFontUrl) {
+      alert(`❌ 폰트 CSS URL이 올바르지 않습니다: ${invalidFontUrl}`);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const headers = getAuthHeaders();
+      if (!headers) {
+        alert('❌ 인증 정보가 없습니다. 다시 로그인해주세요.');
+        return;
+      }
+
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-53dba95c/admin/site-resources`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          body: JSON.stringify({
+            resources: {
+              drawAnimationUrl: resources.drawAnimationUrl.trim(),
+              fontCssUrls,
+            },
+          }),
+        }
+      );
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const mergedResources = mergeSiteResources(data.resources || {});
+        setResources(mergedResources);
+        setFontText(mergedResources.fontCssUrls.join('\n'));
+        alert('✅ 리소스 설정이 저장되었습니다. 프론트 화면에는 새로고침 후 반영됩니다.');
+      } else {
+        alert(`❌ 저장 실패: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`❌ 에러: ${error}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-12">로딩 중...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">리소스 설정</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            전체 사이트의 폰트 CSS 링크와 뽑기 영상 링크를 관리합니다.
+          </p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 disabled:opacity-50"
+        >
+          {saving ? '저장 중...' : '저장'}
+        </button>
+      </div>
+
+      <div className="rounded-lg bg-white p-6 shadow space-y-6">
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-gray-700">뽑기 영상 URL</label>
+          <input
+            type="url"
+            value={resources.drawAnimationUrl}
+            onChange={(e) => setResources((current) => ({ ...current, drawAnimationUrl: e.target.value }))}
+            className="w-full rounded-md border border-gray-300 px-3 py-2"
+            placeholder="https://...mp4"
+          />
+          <video
+            className="mt-4 h-[240px] w-full max-w-[420px] rounded bg-black object-cover"
+            controls
+            muted
+            src={resources.drawAnimationUrl}
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-gray-700">폰트 CSS URL</label>
+          <textarea
+            value={fontText}
+            onChange={(e) => setFontText(e.target.value)}
+            className="h-[160px] w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm"
+            placeholder="한 줄에 하나씩 입력"
+          />
+          <p className="mt-2 text-xs text-gray-500">
+            Google Fonts, CDN CSS 링크처럼 브라우저에서 바로 불러올 수 있는 CSS URL을 한 줄에 하나씩 입력하세요.
+          </p>
+        </div>
       </div>
     </div>
   );

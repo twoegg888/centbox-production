@@ -6,14 +6,13 @@ import { getApiBase, publicAnonKey } from "../../../utils/supabase/info";
 import { useApp } from "../context/AppContext";
 import { DISABLE_LOGIN_GUARDS } from "../utils/authBypass";
 import { toLegacyBoxTicketType } from "../utils/ticketTypes";
+import { useSiteResources } from "../utils/siteResources";
 import svgPaths from "../../imports/svg-mj58s0kgwi";
 import imgRectangle38 from "figma:asset/5997db99783f6b6d17b11391a0bd72794b3ffc4c.png";
 import imgLuckTemperature from "figma:asset/8194a183fe83df0233723d20d08193625bcaef4e.png";
 import WinningAnimation from "../../imports/Group45";
 
 const API_BASE = getApiBase();
-const DRAW_ANIMATION_URL =
-  "https://res.cloudinary.com/dznubvml4/video/upload/v1772365174/grok-video-6b567bbd-14bc-4897-b1bb-43f044287617_rqx09n.mp4";
 
 interface TicketDetailTemplateProps {
   ticketName: string;
@@ -44,6 +43,7 @@ export default function TicketDetailTemplate({
   const navigate = useNavigate();
   const location = useLocation();
   const { userData, drawTickets, isLoggedIn } = useApp();
+  const { drawAnimationUrl } = useSiteResources();
   const [products, setProducts] = useState<ProductSummary[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -357,7 +357,7 @@ export default function TicketDetailTemplate({
             muted
             preload="auto"
             className="absolute inset-0 h-full w-full object-cover"
-            src={DRAW_ANIMATION_URL}
+            src={drawAnimationUrl}
           />
         </div>
       )}

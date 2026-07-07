@@ -77,12 +77,57 @@ const LEGACY_BOX_TICKET_BY_CANONICAL: Record<string, TicketType> = {
 };
 
 const DEFAULT_BOX_SETTINGS = [
-  { ticketType: "legendary", displayName: "전설의 상자", isActive: true, sortOrder: 1 },
-  { ticketType: "mystery", displayName: "미스터리 상자", isActive: true, sortOrder: 2 },
-  { ticketType: "lucky", displayName: "행운의 상자", isActive: true, sortOrder: 3 },
-  { ticketType: "starlight", displayName: "별빛 상자", isActive: true, sortOrder: 4 },
-  { ticketType: "purdal", displayName: "퍼달이의 주머니", isActive: true, sortOrder: 5 },
+  {
+    ticketType: "legendary",
+    displayName: "전설의 상자",
+    isActive: true,
+    sortOrder: 1,
+    homeImageUrl: "https://dbase01.cafe24.com/centbox/dia%20box.png",
+    detailImageUrl: "https://dbase01.cafe24.com/Centbox/diamond_detail1.png",
+  },
+  {
+    ticketType: "mystery",
+    displayName: "미스터리 상자",
+    isActive: true,
+    sortOrder: 2,
+    homeImageUrl: "https://dbase01.cafe24.com/centbox/gold%20box.png",
+    detailImageUrl: "https://dbase01.cafe24.com/Centbox/gold_detail1.png",
+  },
+  {
+    ticketType: "lucky",
+    displayName: "행운의 상자",
+    isActive: true,
+    sortOrder: 3,
+    homeImageUrl: "https://dbase01.cafe24.com/centbox/pla%20box.png",
+    detailImageUrl: "https://dbase01.cafe24.com/Centbox/platinum_detail1.png",
+  },
+  {
+    ticketType: "starlight",
+    displayName: "별빛 상자",
+    isActive: true,
+    sortOrder: 4,
+    homeImageUrl: "https://dbase01.cafe24.com/centbox/rubybox.png",
+    detailImageUrl: "https://dbase01.cafe24.com/Centbox/ruby_detail1.png",
+  },
+  {
+    ticketType: "purdal",
+    displayName: "퍼달이의 주머니",
+    isActive: true,
+    sortOrder: 5,
+    homeImageUrl: "",
+    detailImageUrl: "",
+  },
 ];
+
+const DEFAULT_SITE_RESOURCES = {
+  drawAnimationUrl:
+    "https://res.cloudinary.com/dznubvml4/video/upload/v1772365174/grok-video-6b567bbd-14bc-4897-b1bb-43f044287617_rqx09n.mp4",
+  fontCssUrls: [
+    "https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap",
+    "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap",
+    "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css",
+  ],
+};
 
 function normalizeProductKey(value: unknown): string {
   const rawValue = String(value || "");
@@ -140,6 +185,8 @@ function getMergedBoxSettings(savedSettings: any[] = []) {
       displayName: String(savedSetting?.displayName || defaultSetting.displayName).trim() || defaultSetting.displayName,
       isActive: savedSetting?.isActive !== false,
       sortOrder: Number(savedSetting?.sortOrder || defaultSetting.sortOrder),
+      homeImageUrl: String(savedSetting?.homeImageUrl || defaultSetting.homeImageUrl || "").trim(),
+      detailImageUrl: String(savedSetting?.detailImageUrl || defaultSetting.detailImageUrl || "").trim(),
     };
   }).sort((first, second) => first.sortOrder - second.sortOrder);
 }
@@ -148,6 +195,23 @@ async function loadBoxSettings() {
   const settingsStr = await kv.get("box-settings");
   const savedSettings = settingsStr ? JSON.parse(settingsStr) : [];
   return getMergedBoxSettings(savedSettings);
+}
+
+function getMergedSiteResources(savedResources: any = {}) {
+  const fontCssUrls = Array.isArray(savedResources?.fontCssUrls)
+    ? savedResources.fontCssUrls.map((url: any) => String(url || "").trim()).filter(Boolean)
+    : [];
+
+  return {
+    drawAnimationUrl: String(savedResources?.drawAnimationUrl || DEFAULT_SITE_RESOURCES.drawAnimationUrl).trim(),
+    fontCssUrls: fontCssUrls.length > 0 ? fontCssUrls : DEFAULT_SITE_RESOURCES.fontCssUrls,
+  };
+}
+
+async function loadSiteResources() {
+  const resourcesStr = await kv.get("site-resources");
+  const savedResources = resourcesStr ? JSON.parse(resourcesStr) : {};
+  return getMergedSiteResources(savedResources);
 }
 
 async function findProductMapping(productNameOrType: unknown): Promise<{
@@ -3147,13 +3211,77 @@ app.put("/make-server-53dba95c/admin/box-settings", async (c) => {
       displayName: setting.displayName,
       isActive: setting.isActive,
       sortOrder: setting.sortOrder,
+      homeImageUrl: setting.homeImageUrl,
+      detailImageUrl: setting.detailImageUrl,
     }));
+
+    const invalidImageSetting = cleanSettings.find((setting) => {
+      return (
+        (setting.homeImageUrl && !isValidUrl(setting.homeImageUrl)) ||
+        (setting.detailImageUrl && !isValidUrl(setting.detailImageUrl))
+      );
+    });
+    if (invalidImageSetting) {
+      return c.json({ error: `Invalid image URL for ${invalidImageSetting.ticketType}` }, 400);
+    }
 
     await kv.set("box-settings", JSON.stringify(cleanSettings));
     return c.json({ success: true, settings: cleanSettings });
   } catch (error) {
     console.error("Update box settings error:", error);
     return c.json({ error: "Failed to update box settings", details: String(error) }, 500);
+  }
+});
+
+app.get("/make-server-53dba95c/site-resources", async (c) => {
+  try {
+    const resources = await loadSiteResources();
+    return c.json({ success: true, resources });
+  } catch (error) {
+    console.error("Get site resources error:", error);
+    return c.json({ error: "Failed to get site resources", details: String(error) }, 500);
+  }
+});
+
+app.get("/make-server-53dba95c/admin/site-resources", async (c) => {
+  const adminSecret = getAdminSecretFromHeaders(c);
+  if (!(await validateAdminAuth(adminSecret))) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const resources = await loadSiteResources();
+    return c.json({ success: true, resources });
+  } catch (error) {
+    console.error("Get admin site resources error:", error);
+    return c.json({ error: "Failed to get site resources", details: String(error) }, 500);
+  }
+});
+
+app.put("/make-server-53dba95c/admin/site-resources", async (c) => {
+  const adminSecret = getAdminSecretFromHeaders(c);
+  if (!(await validateAdminAuth(adminSecret))) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  try {
+    const { resources } = await c.req.json();
+    const cleanResources = getMergedSiteResources(resources || {});
+
+    if (!isValidUrl(cleanResources.drawAnimationUrl)) {
+      return c.json({ error: "Invalid draw animation URL" }, 400);
+    }
+
+    const invalidFontUrl = cleanResources.fontCssUrls.find((url: string) => !isValidUrl(url));
+    if (invalidFontUrl) {
+      return c.json({ error: `Invalid font CSS URL: ${invalidFontUrl}` }, 400);
+    }
+
+    await kv.set("site-resources", JSON.stringify(cleanResources));
+    return c.json({ success: true, resources: cleanResources });
+  } catch (error) {
+    console.error("Update site resources error:", error);
+    return c.json({ error: "Failed to update site resources", details: String(error) }, 500);
   }
 });
 

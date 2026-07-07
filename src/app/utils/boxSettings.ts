@@ -7,14 +7,51 @@ export type BoxSetting = {
   displayName: string;
   isActive: boolean;
   sortOrder: number;
+  homeImageUrl: string;
+  detailImageUrl: string;
 };
 
 export const DEFAULT_BOX_SETTINGS: BoxSetting[] = [
-  { ticketType: "legendary", displayName: "전설의 상자", isActive: true, sortOrder: 1 },
-  { ticketType: "mystery", displayName: "미스터리 상자", isActive: true, sortOrder: 2 },
-  { ticketType: "lucky", displayName: "행운의 상자", isActive: true, sortOrder: 3 },
-  { ticketType: "starlight", displayName: "별빛 상자", isActive: true, sortOrder: 4 },
-  { ticketType: "purdal", displayName: "퍼달이의 주머니", isActive: true, sortOrder: 5 },
+  {
+    ticketType: "legendary",
+    displayName: "전설의 상자",
+    isActive: true,
+    sortOrder: 1,
+    homeImageUrl: "https://dbase01.cafe24.com/centbox/dia%20box.png",
+    detailImageUrl: "https://dbase01.cafe24.com/Centbox/diamond_detail1.png",
+  },
+  {
+    ticketType: "mystery",
+    displayName: "미스터리 상자",
+    isActive: true,
+    sortOrder: 2,
+    homeImageUrl: "https://dbase01.cafe24.com/centbox/gold%20box.png",
+    detailImageUrl: "https://dbase01.cafe24.com/Centbox/gold_detail1.png",
+  },
+  {
+    ticketType: "lucky",
+    displayName: "행운의 상자",
+    isActive: true,
+    sortOrder: 3,
+    homeImageUrl: "https://dbase01.cafe24.com/centbox/pla%20box.png",
+    detailImageUrl: "https://dbase01.cafe24.com/Centbox/platinum_detail1.png",
+  },
+  {
+    ticketType: "starlight",
+    displayName: "별빛 상자",
+    isActive: true,
+    sortOrder: 4,
+    homeImageUrl: "https://dbase01.cafe24.com/centbox/rubybox.png",
+    detailImageUrl: "https://dbase01.cafe24.com/Centbox/ruby_detail1.png",
+  },
+  {
+    ticketType: "purdal",
+    displayName: "퍼달이의 주머니",
+    isActive: true,
+    sortOrder: 5,
+    homeImageUrl: "",
+    detailImageUrl: "",
+  },
 ];
 
 export const DEFAULT_BOX_DISPLAY_NAMES = DEFAULT_BOX_SETTINGS.reduce(
@@ -35,6 +72,8 @@ export function mergeBoxSettings(settings: Partial<BoxSetting>[] = []): BoxSetti
       displayName: String(savedSetting?.displayName || defaultSetting.displayName),
       isActive: savedSetting?.isActive !== false,
       sortOrder: Number(savedSetting?.sortOrder || defaultSetting.sortOrder),
+      homeImageUrl: String(savedSetting?.homeImageUrl || defaultSetting.homeImageUrl || ""),
+      detailImageUrl: String(savedSetting?.detailImageUrl || defaultSetting.detailImageUrl || ""),
     };
   }).sort((first, second) => first.sortOrder - second.sortOrder);
 }

@@ -4,9 +4,13 @@ import { AppProvider } from './context/AppContext';
 import { useEffect, useState } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toaster } from 'sonner';
+import { useDynamicFontLinks, useSiteResources } from './utils/siteResources';
 
 function AppContent() {
   const [isReady, setIsReady] = useState(false);
+  const { fontCssUrls } = useSiteResources();
+
+  useDynamicFontLinks(fontCssUrls);
 
   useEffect(() => {
     // 초기 렌더링 완료 후 준비 상태로 변경

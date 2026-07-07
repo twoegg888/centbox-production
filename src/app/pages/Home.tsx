@@ -8,7 +8,7 @@ import { getApiBase, publicAnonKey } from "../../../utils/supabase/info";
 import { buildTicketDetailPath, getTicketDisplayName, getTicketFallbackImage } from "../utils/ticketDetailMeta";
 import { TicketType } from "../types";
 import { canonicalizeBoxTicketType, toLegacyBoxTicketType } from "../utils/ticketTypes";
-import { DEFAULT_BOX_DISPLAY_NAMES, useBoxSettings } from "../utils/boxSettings";
+import { BoxSetting, DEFAULT_BOX_DISPLAY_NAMES, useBoxSettings } from "../utils/boxSettings";
 
 type MainPage = "home" | "result" | "exchange" | "point" | "lucky";
 type TicketTypePath = TicketType;
@@ -20,18 +20,6 @@ type HomeProduct = {
   imageUrl?: string;
   ticketType: TicketTypePath;
   exchangeCount?: number;
-};
-
-const HOME_BOX_IMAGE_URLS: Partial<Record<TicketTypePath, string>> = {
-  legendary: "https://dbase01.cafe24.com/centbox/dia%20box.png",
-  mystery: "https://dbase01.cafe24.com/centbox/gold%20box.png",
-  lucky: "https://dbase01.cafe24.com/centbox/pla%20box.png",
-  starlight: "https://dbase01.cafe24.com/centbox/rubybox.png",
-  purdal: "",
-  diamond: "https://dbase01.cafe24.com/centbox/dia%20box.png",
-  gold: "https://dbase01.cafe24.com/centbox/gold%20box.png",
-  platinum: "https://dbase01.cafe24.com/centbox/pla%20box.png",
-  ruby: "https://dbase01.cafe24.com/centbox/rubybox.png",
 };
 
 const HOME_TICKET_LINKS: Array<{
@@ -110,8 +98,10 @@ function normalizeHomeProduct(product: HomeProduct): HomeProduct {
   };
 }
 
-function getHomeFallbackImage(ticketType: TicketTypePath) {
-  return HOME_BOX_IMAGE_URLS[ticketType] || getTicketFallbackImage(ticketType);
+function getHomeFallbackImage(ticketType: TicketTypePath, boxSettings: BoxSetting[] = []) {
+  const canonicalType = canonicalizeBoxTicketType(ticketType);
+  const setting = boxSettings.find((boxSetting) => boxSetting.ticketType === canonicalType);
+  return setting?.homeImageUrl || getTicketFallbackImage(ticketType);
 }
 
 function shuffleProducts(products: HomeProduct[]) {
@@ -130,12 +120,14 @@ function DynamicProductCard({
   className,
   compact = false,
   displayNames = DEFAULT_BOX_DISPLAY_NAMES,
+  boxSettings,
   onClick,
 }: {
   product: HomeProduct;
   className?: string;
   compact?: boolean;
   displayNames?: Partial<Record<TicketTypePath, string>>;
+  boxSettings: BoxSetting[];
   onClick: () => void;
 }) {
   const displayName = displayNames[product.ticketType] || getTicketDisplayName(product.ticketType);
@@ -156,7 +148,7 @@ function DynamicProductCard({
           alt={product.name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
           loading="lazy"
-          src={product.imageUrl || getHomeFallbackImage(product.ticketType)}
+          src={product.imageUrl || getHomeFallbackImage(product.ticketType, boxSettings)}
         />
       </div>
       <div className={compact ? "pt-[14px]" : "pt-[14px]"}>
@@ -177,10 +169,12 @@ function DynamicProductCard({
 function TreasureProductRail({
   products,
   displayNames,
+  boxSettings,
   onOpenProduct,
 }: {
   products: HomeProduct[];
   displayNames: Partial<Record<TicketTypePath, string>>;
+  boxSettings: BoxSetting[];
   onOpenProduct: (productName: string | undefined, fallbackTicketType: TicketTypePath) => void;
 }) {
   const loopProducts = products.length >= 4 ? [...products, ...products] : products;
@@ -194,6 +188,7 @@ function TreasureProductRail({
               key={`${product.ticketType}-${product.id}-${index}`}
               product={product}
               displayNames={displayNames}
+              boxSettings={boxSettings}
               className="w-[164px] shrink-0"
               onClick={() => onOpenProduct(product.name, product.ticketType)}
             />
@@ -204,7 +199,13 @@ function TreasureProductRail({
   );
 }
 
-function BoxImageFallbackOverlays({ displayNames }: { displayNames: Partial<Record<TicketTypePath, string>> }) {
+function BoxImageFallbackOverlays({
+  displayNames,
+  boxSettings,
+}: {
+  displayNames: Partial<Record<TicketTypePath, string>>;
+  boxSettings: BoxSetting[];
+}) {
   const slots: Array<{ ticketType: TicketTypePath; className: string }> = [
     { ticketType: "legendary", className: "left-[29px] top-[1051px]" },
     { ticketType: "mystery", className: "left-[244px] top-[1051px]" },
@@ -221,7 +222,7 @@ function BoxImageFallbackOverlays({ displayNames }: { displayNames: Partial<Reco
             alt={displayNames[slot.ticketType] || getTicketDisplayName(slot.ticketType)}
             className="h-full w-full object-cover"
             loading="lazy"
-            src={getHomeFallbackImage(slot.ticketType)}
+            src={getHomeFallbackImage(slot.ticketType, boxSettings)}
           />
         </div>
       ))}
@@ -232,10 +233,12 @@ function BoxImageFallbackOverlays({ displayNames }: { displayNames: Partial<Reco
 function FeaturedHighValueProducts({
   products,
   displayNames,
+  boxSettings,
   onOpenProduct,
 }: {
   products: HomeProduct[];
   displayNames: Partial<Record<TicketTypePath, string>>;
+  boxSettings: BoxSetting[];
   onOpenProduct: (productName: string | undefined, fallbackTicketType: TicketTypePath) => void;
 }) {
   const slots = [
@@ -263,6 +266,7 @@ function FeaturedHighValueProducts({
               key={`${product.ticketType}-${product.id}-${index}`}
               product={product}
               displayNames={displayNames}
+              boxSettings={boxSettings}
               compact
               className={`absolute z-20 w-[206px] ${slots[index]}`}
               onClick={() => onOpenProduct(product.name, product.ticketType)}
@@ -282,7 +286,7 @@ function FeaturedHighValueProducts({
 
 export default function Home() {
   const navigate = useNavigate();
-  const { activeBoxSettings, displayNames } = useBoxSettings();
+  const { boxSettings, activeBoxSettings, displayNames } = useBoxSettings();
   const [homeProducts, setHomeProducts] = useState<HomeProduct[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<HomeProduct[]>([]);
 
@@ -377,10 +381,11 @@ export default function Home() {
 
         <FigmaHome />
         <SharedHeader onCategoryClick={handleCategoryClick} />
-        <BoxImageFallbackOverlays displayNames={displayNames} />
+        <BoxImageFallbackOverlays displayNames={displayNames} boxSettings={boxSettings} />
         <TreasureProductRail
           products={homeProducts}
           displayNames={displayNames}
+          boxSettings={boxSettings}
           onOpenProduct={(productName, fallbackTicketType) =>
             navigate(buildTicketDetailPath(productName || "", fallbackTicketType))
           }
@@ -388,6 +393,7 @@ export default function Home() {
         <FeaturedHighValueProducts
           products={featuredProducts}
           displayNames={displayNames}
+          boxSettings={boxSettings}
           onOpenProduct={(productName, fallbackTicketType) =>
             navigate(buildTicketDetailPath(productName || "", fallbackTicketType))
           }

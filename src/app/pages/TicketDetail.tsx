@@ -24,7 +24,7 @@ export default function TicketDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoggedIn } = useApp();
-  const { displayNames } = useBoxSettings();
+  const { boxSettings, displayNames } = useBoxSettings();
   const { productNameOrType } = useParams<{ productNameOrType: string }>();
   const queryProductName = useMemo(() => new URLSearchParams(location.search).get("productName"), [location.search]);
   const productNameParam = queryProductName || productNameOrType || "";
@@ -46,11 +46,13 @@ export default function TicketDetail() {
         const canonicalParam = canonicalizeBoxTicketType(normalizedParam);
         if (isCanonicalBoxTicketType(canonicalParam) || isLegacyBoxTicketType(normalizedParam)) {
           const boxMeta = resolveTicketDetailMeta(String(canonicalParam));
+          const boxSetting = boxSettings.find((setting) => setting.ticketType === boxMeta?.ticketType);
           setDetailMeta(
             boxMeta
               ? {
                   ...boxMeta,
                   ticketName: displayNames[boxMeta.ticketType] || boxMeta.ticketName,
+                  mainImage: boxSetting?.detailImageUrl || boxMeta.mainImage,
                 }
               : null
           );
@@ -75,11 +77,13 @@ export default function TicketDetail() {
           }
 
           const fallbackMeta = resolveTicketDetailMeta(data.ticketType);
+          const boxSetting = boxSettings.find((setting) => setting.ticketType === fallbackMeta?.ticketType);
           setDetailMeta(
             fallbackMeta
               ? {
                   ...fallbackMeta,
                   ticketName: displayNames[fallbackMeta.ticketType] || fallbackMeta.ticketName,
+                  mainImage: boxSetting?.detailImageUrl || fallbackMeta.mainImage,
                 }
               : null
           );
@@ -92,11 +96,13 @@ export default function TicketDetail() {
       }
 
       const fallbackMeta = resolveTicketDetailMeta(productNameParam);
+      const boxSetting = boxSettings.find((setting) => setting.ticketType === fallbackMeta?.ticketType);
       setDetailMeta(
         fallbackMeta
           ? {
               ...fallbackMeta,
               ticketName: displayNames[fallbackMeta.ticketType] || fallbackMeta.ticketName,
+              mainImage: boxSetting?.detailImageUrl || fallbackMeta.mainImage,
             }
           : null
       );
@@ -109,7 +115,7 @@ export default function TicketDetail() {
 
     setDetailMeta(null);
     setIsLoadingDetail(false);
-  }, [productNameParam, displayNames]);
+  }, [productNameParam, displayNames, boxSettings]);
 
   if (!DISABLE_LOGIN_GUARDS && !isLoggedIn) {
     return (
