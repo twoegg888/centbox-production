@@ -36,10 +36,8 @@ function ManagedHomeBanner({ imageUrls }: { imageUrls: string[] }) {
     return () => window.clearInterval(intervalId);
   }, [imageUrls.length]);
 
-  if (imageUrls.length === 0) return null;
-
   return (
-    <div className="absolute left-0 top-[162px] z-10 h-[289px] w-full overflow-hidden bg-[#000347]">
+    <div className="absolute left-0 top-[162px] z-10 h-[289px] w-full overflow-hidden bg-white">
       {imageUrls.map((imageUrl, index) => (
         <img
           key={imageUrl}
@@ -412,6 +410,10 @@ export default function Home() {
         <style>{`
           [data-name="Background+HorizontalBorder"] { display: none !important; }
           [data-name="auto_slide_interaction"] { display: none !important; }
+          [data-name="Main banner"] { display: none !important; }
+          [data-name="Launch announcement button"] { display: none !important; }
+          [data-name="How to use button"] { display: none !important; }
+          .text-shadow-\\[0px_4px_4px_rgba\\(0\\,0\\,0\\,0\\.28\\)\\] { display: none !important; }
           @keyframes homeRail {
             from { transform: translateX(0); }
             to { transform: translateX(-50%); }
