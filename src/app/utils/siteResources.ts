@@ -4,6 +4,7 @@ import { getApiBase, publicAnonKey } from "../../../utils/supabase/info";
 export type SiteResourceSettings = {
   drawAnimationUrl: string;
   fontCssUrls: string[];
+  homeBannerImageUrls: string[];
 };
 
 export const DEFAULT_SITE_RESOURCES: SiteResourceSettings = {
@@ -14,6 +15,7 @@ export const DEFAULT_SITE_RESOURCES: SiteResourceSettings = {
     "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap",
     "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css",
   ],
+  homeBannerImageUrls: [],
 };
 
 function normalizeUrlList(value: unknown) {
@@ -22,10 +24,12 @@ function normalizeUrlList(value: unknown) {
 
 export function mergeSiteResources(settings: Partial<SiteResourceSettings> = {}): SiteResourceSettings {
   const fontCssUrls = normalizeUrlList(settings.fontCssUrls);
+  const homeBannerImageUrls = normalizeUrlList(settings.homeBannerImageUrls);
 
   return {
     drawAnimationUrl: String(settings.drawAnimationUrl || DEFAULT_SITE_RESOURCES.drawAnimationUrl).trim(),
     fontCssUrls: fontCssUrls.length > 0 ? fontCssUrls : DEFAULT_SITE_RESOURCES.fontCssUrls,
+    homeBannerImageUrls,
   };
 }
 

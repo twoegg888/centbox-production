@@ -811,6 +811,7 @@ function BoxSettingsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
 function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [resources, setResources] = useState<SiteResourceSettings>(DEFAULT_SITE_RESOURCES);
   const [fontText, setFontText] = useState(DEFAULT_SITE_RESOURCES.fontCssUrls.join('\n'));
+  const [homeBannerText, setHomeBannerText] = useState(DEFAULT_SITE_RESOURCES.homeBannerImageUrls.join('\n'));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -838,6 +839,7 @@ function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         const mergedResources = mergeSiteResources(data.resources || {});
         setResources(mergedResources);
         setFontText(mergedResources.fontCssUrls.join('\n'));
+        setHomeBannerText(mergedResources.homeBannerImageUrls.join('\n'));
       } else {
         alert(`❌ 리소스 설정을 불러오지 못했습니다: ${data.error}`);
       }
@@ -853,6 +855,10 @@ function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
       .split('\n')
       .map((url) => url.trim())
       .filter(Boolean);
+    const homeBannerImageUrls = homeBannerText
+      .split('\n')
+      .map((url) => url.trim())
+      .filter(Boolean);
 
     if (!resources.drawAnimationUrl.trim() || !isValidHttpUrl(resources.drawAnimationUrl)) {
       alert('❌ 뽑기 영상 URL은 http 또는 https 링크여야 합니다.');
@@ -862,6 +868,12 @@ function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
     const invalidFontUrl = fontCssUrls.find((url) => !isValidHttpUrl(url));
     if (invalidFontUrl) {
       alert(`❌ 폰트 CSS URL이 올바르지 않습니다: ${invalidFontUrl}`);
+      return;
+    }
+
+    const invalidHomeBannerUrl = homeBannerImageUrls.find((url) => !isValidHttpUrl(url));
+    if (invalidHomeBannerUrl) {
+      alert(`❌ 홈 배너 이미지 URL이 올바르지 않습니다: ${invalidHomeBannerUrl}`);
       return;
     }
 
@@ -885,6 +897,7 @@ function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
             resources: {
               drawAnimationUrl: resources.drawAnimationUrl.trim(),
               fontCssUrls,
+              homeBannerImageUrls,
             },
           }),
         }
@@ -895,6 +908,7 @@ function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         const mergedResources = mergeSiteResources(data.resources || {});
         setResources(mergedResources);
         setFontText(mergedResources.fontCssUrls.join('\n'));
+        setHomeBannerText(mergedResources.homeBannerImageUrls.join('\n'));
         alert('✅ 리소스 설정이 저장되었습니다. 프론트 화면에는 새로고침 후 반영됩니다.');
       } else {
         alert(`❌ 저장 실패: ${data.error}`);
@@ -916,7 +930,7 @@ function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">리소스 설정</h2>
           <p className="mt-2 text-sm text-gray-600">
-            전체 사이트의 폰트 CSS 링크와 뽑기 영상 링크를 관리합니다.
+            전체 사이트의 폰트 CSS 링크, 홈 배너 이미지, 뽑기 영상 링크를 관리합니다.
           </p>
         </div>
         <button
@@ -929,6 +943,32 @@ function SiteResourcesTab({ isAuthenticated }: { isAuthenticated: boolean }) {
       </div>
 
       <div className="rounded-lg bg-white p-4 shadow space-y-6 sm:p-6">
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-gray-700">홈 메인 배너 이미지 URL</label>
+          <textarea
+            value={homeBannerText}
+            onChange={(e) => setHomeBannerText(e.target.value)}
+            className="h-[120px] w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm"
+            placeholder="한 줄에 하나씩 입력. 1개면 고정, 2개 이상이면 자동 전환"
+          />
+          <p className="mt-2 text-xs text-gray-500">
+            권장 크기: 480x289 비율. URL을 비워두면 기존 기본 홈 배너가 표시됩니다.
+          </p>
+          {homeBannerText
+            .split('\n')
+            .map((url) => url.trim())
+            .filter(Boolean)
+            .slice(0, 3)
+            .map((url) => (
+              <AdminImage
+                key={url}
+                src={url}
+                alt="홈 배너 미리보기"
+                className="mt-3 h-[120px] w-full max-w-[420px] rounded object-cover"
+              />
+            ))}
+        </div>
+
         <div>
           <label className="mb-2 block text-sm font-semibold text-gray-700">뽑기 영상 URL</label>
           <input

@@ -127,6 +127,7 @@ const DEFAULT_SITE_RESOURCES = {
     "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap",
     "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css",
   ],
+  homeBannerImageUrls: [],
 };
 
 function normalizeProductKey(value: unknown): string {
@@ -201,10 +202,14 @@ function getMergedSiteResources(savedResources: any = {}) {
   const fontCssUrls = Array.isArray(savedResources?.fontCssUrls)
     ? savedResources.fontCssUrls.map((url: any) => String(url || "").trim()).filter(Boolean)
     : [];
+  const homeBannerImageUrls = Array.isArray(savedResources?.homeBannerImageUrls)
+    ? savedResources.homeBannerImageUrls.map((url: any) => String(url || "").trim()).filter(Boolean)
+    : [];
 
   return {
     drawAnimationUrl: String(savedResources?.drawAnimationUrl || DEFAULT_SITE_RESOURCES.drawAnimationUrl).trim(),
     fontCssUrls: fontCssUrls.length > 0 ? fontCssUrls : DEFAULT_SITE_RESOURCES.fontCssUrls,
+    homeBannerImageUrls,
   };
 }
 
@@ -3275,6 +3280,11 @@ app.put("/make-server-53dba95c/admin/site-resources", async (c) => {
     const invalidFontUrl = cleanResources.fontCssUrls.find((url: string) => !isValidUrl(url));
     if (invalidFontUrl) {
       return c.json({ error: `Invalid font CSS URL: ${invalidFontUrl}` }, 400);
+    }
+
+    const invalidHomeBannerUrl = cleanResources.homeBannerImageUrls.find((url: string) => !isValidUrl(url));
+    if (invalidHomeBannerUrl) {
+      return c.json({ error: `Invalid home banner image URL: ${invalidHomeBannerUrl}` }, 400);
     }
 
     await kv.set("site-resources", JSON.stringify(cleanResources));

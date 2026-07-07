@@ -9,6 +9,7 @@ import { buildTicketDetailPath, getTicketDisplayName, getTicketFallbackImage } f
 import { TicketType } from "../types";
 import { canonicalizeBoxTicketType, toLegacyBoxTicketType } from "../utils/ticketTypes";
 import { BoxSetting, DEFAULT_BOX_DISPLAY_NAMES, useBoxSettings } from "../utils/boxSettings";
+import { useSiteResources } from "../utils/siteResources";
 
 type MainPage = "home" | "result" | "exchange" | "point" | "lucky";
 type TicketTypePath = TicketType;
@@ -21,6 +22,37 @@ type HomeProduct = {
   ticketType: TicketTypePath;
   exchangeCount?: number;
 };
+
+function ManagedHomeBanner({ imageUrls }: { imageUrls: string[] }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (imageUrls.length <= 1) return;
+
+    const intervalId = window.setInterval(() => {
+      setActiveIndex((index) => (index + 1) % imageUrls.length);
+    }, 4500);
+
+    return () => window.clearInterval(intervalId);
+  }, [imageUrls.length]);
+
+  if (imageUrls.length === 0) return null;
+
+  return (
+    <div className="absolute left-0 top-[162px] z-10 h-[289px] w-full overflow-hidden bg-[#000347]">
+      {imageUrls.map((imageUrl, index) => (
+        <img
+          key={imageUrl}
+          src={imageUrl}
+          alt="홈 메인 배너"
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+            index === activeIndex ? "opacity-100" : "opacity-0"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
 
 const HOME_TICKET_LINKS: Array<{
   ariaLabel: string;
@@ -289,6 +321,7 @@ function FeaturedHighValueProducts({
 export default function Home() {
   const navigate = useNavigate();
   const { boxSettings, activeBoxSettings, displayNames } = useBoxSettings();
+  const { homeBannerImageUrls } = useSiteResources();
   const [homeProducts, setHomeProducts] = useState<HomeProduct[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<HomeProduct[]>([]);
 
@@ -389,6 +422,7 @@ export default function Home() {
         `}</style>
 
         <FigmaHome />
+        <ManagedHomeBanner imageUrls={homeBannerImageUrls} />
         <SharedHeader onCategoryClick={handleCategoryClick} />
         <BoxImageFallbackOverlays displayNames={displayNames} boxSettings={boxSettings} />
         <TreasureProductRail
