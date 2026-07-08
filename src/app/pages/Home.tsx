@@ -36,6 +36,8 @@ function ManagedHomeBanner({ imageUrls }: { imageUrls: string[] }) {
     return () => window.clearInterval(intervalId);
   }, [imageUrls.length]);
 
+  if (imageUrls.length === 0) return null;
+
   return (
     <div className="absolute left-0 top-[162px] z-10 h-[289px] w-full overflow-hidden bg-white">
       {imageUrls.map((imageUrl, index) => (
